@@ -14,5 +14,6 @@
         Task<List<BatchDetails>> GetBatchesById(string CourseId);
 
         Task<bool> InsertLiveClass_start(LiveSessionRequest request, long meetingId, string startUrl, string joinUrl);
+        string GenerateSdkSignature(string meetingNumber, int role);
     }
 }

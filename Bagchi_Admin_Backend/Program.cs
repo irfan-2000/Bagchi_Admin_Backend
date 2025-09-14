@@ -6,6 +6,7 @@ using Microsoft.Extensions.FileProviders;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<ILiveStreamingService, LiveStreamingService>();
+ 
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

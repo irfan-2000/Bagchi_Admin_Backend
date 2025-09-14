@@ -1,13 +1,18 @@
-﻿using Bagchi_Admin_Backend.Models;
+﻿using Azure.Core;
+using Bagchi_Admin_Backend.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Bagchi_Admin_Backend.Services
 {
     public class LiveStreamingService : ILiveStreamingService
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly IConfiguration _Iconfiguration;
+        private readonly IConfiguration _config;
 
         public static String GlobalFetchPath;
 
@@ -16,9 +21,9 @@ namespace Bagchi_Admin_Backend.Services
         public LiveStreamingService(ApplicationDbContext dbContext, IConfiguration Iconfiguration)
         {
             _dbContext = dbContext;
-            _Iconfiguration = Iconfiguration;
-            GlobalFetchMediaPath = _Iconfiguration["GlobalFetchMediaPath"];
-            GlobalFetchPath = _Iconfiguration["GlobalFetchPath"];
+            _config = Iconfiguration;
+            GlobalFetchMediaPath = _config["GlobalFetchMediaPath"];
+            GlobalFetchPath = _config["GlobalFetchPath"];
 
         }
 
@@ -220,6 +225,13 @@ namespace Bagchi_Admin_Backend.Services
                     DbHelper.AddParameter(cmd, "@MuteUponEntry", Convert.ToByte(request.mute_upon_entry));
                     DbHelper.AddParameter(cmd, "@ApprovalType", request.approval_type);
                     DbHelper.AddParameter(cmd, "@Status", request.type);
+                    DbHelper.AddParameter(cmd, "@accesstoken", request.accesstoken);
+                    DbHelper.AddParameter(cmd, "@refreshtoken", request.refreshtoken);
+                    DbHelper.AddParameter(cmd, "@expiresin", request.expiresin);
+                    DbHelper.AddParameter(cmd, "@meetingpassword", request.meetingpassword);
+ 
+
+
                     DbHelper.AddParameter(cmd, "@Action", "INSERT");
 
 
@@ -255,9 +267,205 @@ namespace Bagchi_Admin_Backend.Services
         }
 
 
+        //public string GenerateZoomSignature(string meetingNumber, int role)
+        //{
+        //    string apiKey = _config["Zoom:ClientId"];       // SDK Key (use ClientId here)
+        //    string apiSecret = _config["Zoom:ClientSecret"]; // SDK Secret (use ClientSecret)
+
+        //    // Expiry: 2 mins from now
+        //    var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        //    var exp = ts + 120;
+
+        //    var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(apiSecret));
+        //    var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        //    var header = new JwtHeader(credentials);
+
+        //    var payload = new JwtPayload
+        //{
+        //    { "sdkKey", apiKey },
+        //    { "mn", meetingNumber },
+        //    { "role", role },            // 0 = participant, 1 = host
+        //    { "iat", ts },
+        //    { "exp", exp },
+        //    { "appKey", apiKey },
+        //    { "tokenExp", exp }
+        //};
+
+        //    var secToken = new JwtSecurityToken(header, payload);
+        //    var handler = new JwtSecurityTokenHandler();
+        //    return handler.WriteToken(secToken);
+        //}
+
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+        private readonly string sdkKey = "zQJMdPLnTZCvtE70iMLcSA"; // Your SDK Key
+        private readonly string sdkSecret = "UPtL6W9bySR4J7i23Juy8G6OAj96XfCT"; // Your SDK Secret
+
+        public string GenerateSdkSignature(string meetingNumber, int role)
+        {
+            meetingNumber = "84914005384";
+
+            long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - 30;
+            long exp = iat + 60 * 60 * 2; // Signature valid for 2 hours
+
+            var claims = new List<Claim>
+        {
+            new Claim("appKey", sdkKey),
+            new Claim("mn", meetingNumber),
+            new Claim("role", role.ToString()),
+            new Claim("iat", "1646937553"),
+            new Claim("exp", "1646944753"),
+            new Claim("tokenExp", "1646944753")
+        };
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(sdkSecret));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var header = new JwtHeader(credentials);
+            var payload = new JwtPayload(claims);
+            var token = new JwtSecurityToken(header, payload);
+
+            string jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // Validate JWT structure
+            if (!IsValidJwt(jwt))
+            {
+                throw new InvalidOperationException("Invalid JWT structure.");
+            }
+
+            // Validate timestamps
+            ValidateTimestamps(iat, exp);
+
+            return jwt;
+        }
+
+        private bool IsValidJwt(string jwt)
+        {
+            try
+            {
+                var parts = jwt.Split('.');
+                if (parts.Length != 3) return false;
+
+                var header = parts[0];
+                var payload = parts[1];
+                var signature = parts[2];
+
+                // Decode Base64Url safely
+                string Base64UrlDecode(string input)
+                {
+                    string base64 = input.Replace('-', '+').Replace('_', '/');
+                    switch (base64.Length % 4)
+                    {
+                        case 2: base64 += "=="; break;
+                        case 3: base64 += "="; break;
+                    }
+                    return base64;
+                }
+
+                var decodedHeader = Encoding.UTF8.GetString(Convert.FromBase64String(Base64UrlDecode(header)));
+                var decodedPayload = Encoding.UTF8.GetString(Convert.FromBase64String(Base64UrlDecode(payload)));
+
+                // Optional: you can parse payload as JSON and validate claims here
+                // e.g., check exp, iss, aud, etc.
+
+                return true;
+            }
+            catch
+            {
+                // Any error in decoding means JWT is invalid
+                return false;
+            }
+        }
+
+
+        private void ValidateTimestamps(long iat, long exp)
+        {
+            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            if (exp - iat < 1800)
+            {
+                throw new InvalidOperationException("Expiration time must be at least 30 minutes after issued time.");
+            }
+
+            if (exp - iat > 172800)
+            {
+                throw new InvalidOperationException("Expiration time must not exceed 48 hours after issued time.");
+            }
+
+            if (iat > currentTime)
+            {
+                throw new InvalidOperationException("Issued time cannot be in the future.");
+            }
+
+            if (exp < currentTime)
+            {
+                throw new InvalidOperationException("Expiration time cannot be in the past.");
+            }
+        }
+
+
+        public static byte[] Base64UrlDecode(string input)
+        {
+            string base64 = input
+                .Replace('-', '+')
+                .Replace('_', '/');
+
+            // Add padding if missing
+            switch (base64.Length % 4)
+            {
+                case 2: base64 += "=="; break;
+                case 3: base64 += "="; break;
+            }
+
+            return Convert.FromBase64String(base64);
+        }
+
+
+
+
+
+
+
 
 
 
 
     }
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+ 

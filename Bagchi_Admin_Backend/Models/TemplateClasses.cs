@@ -26,7 +26,20 @@ namespace Bagchi_Admin_Backend.Models
 
 
         public string CourseId { get; set; }
+
+
+
+
+        public string accesstoken { get; set; }
+
+        public string refreshtoken { get; set; }
+
+         public int expiresin { get; set; }
+
+        public string meetingpassword { get; set; }
     }
+
+
 
 
 
@@ -106,5 +119,15 @@ namespace Bagchi_Admin_Backend.Models
         public string StartTime { get; set; }
         public string EndTime { get; set; }
     }
+
+
+
+
+    public class ZoomRequest
+    {
+        public string MeetingNumber { get; set; }
+        public int Role { get; set; } // 1 = host, 0 = attendee
+    }
+
 
 }
