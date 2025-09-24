@@ -8,6 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ILiveStreamingService, LiveStreamingService>();
  
 
+builder.Services.AddScoped<IQuizService, QuizService>();
+ 
+builder.Services.AddScoped<ICourseService, CourseService>();
+ 
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

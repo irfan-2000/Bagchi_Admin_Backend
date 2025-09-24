@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Bagchi_Admin_Backend.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -28,56 +29,56 @@ namespace Bagchi_Admin_Backend.Services
         }
 
 
-        public async Task<List<AllCourseDetails>> GetAllCourses()
-        {
-            List<AllCourseDetails> allCourses = new List<AllCourseDetails>();
+        //public async Task<List<AllCourseDetails>> GetAllCourses()
+        //{
+        //    List<AllCourseDetails> allCourses = new List<AllCourseDetails>();
 
-            try
-            {
-                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
-                {
-                    cmd.CommandText = "sp_Manage_CourseDetails";
-                    cmd.CommandType = CommandType.StoredProcedure;
+        //    try
+        //    {
+        //        using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+        //        {
+        //            cmd.CommandText = "sp_Manage_CourseDetails";
+        //            cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Parameters
-                    DbHelper.AddParameter(cmd, "@From", "U");
-                    DbHelper.AddParameter(cmd, "@Flag", "GA");
+        //            // Parameters
+        //            DbHelper.AddParameter(cmd, "@From", "U");
+        //            DbHelper.AddParameter(cmd, "@Flag", "GA");
 
-                    await _dbContext.Database.OpenConnectionAsync();
+        //            await _dbContext.Database.OpenConnectionAsync();
 
-                    using (var reader = await cmd.ExecuteReaderAsync())
-                    {
-                        while (await reader.ReadAsync())
-                        {
-                            AllCourseDetails data = new AllCourseDetails();
+        //            using (var reader = await cmd.ExecuteReaderAsync())
+        //            {
+        //                while (await reader.ReadAsync())
+        //                {
+        //                    AllCourseDetails data = new AllCourseDetails();
 
-                            data.OldPrice = reader["OldPrice"]?.ToString() ?? "";
-                            data.DetailId = reader["DetailId"]?.ToString() ?? "";
-                            data.CourseId = reader["CourseId"]?.ToString() ?? "";
-                            data.CourseName = reader["CourseName"]?.ToString() ?? "";
-                            data.Price = reader["Price"]?.ToString() ?? "";
-                            data.Status = reader["Status"]?.ToString() ?? "";
-                            data.Description = reader["Description"]?.ToString() ?? "";
-                            data.Objectives = reader["Objectives"]?.ToString() ?? "";
-                            data.Requirements = reader["Requirements"]?.ToString() ?? "";
-                            data.CourseLevel = reader["CourseLevel"]?.ToString() ?? "";
-                            data.CreatedAt = reader["CreatedAt"]?.ToString() ?? "";
-                            data.UpdatedAt = reader["UpdatedAt"]?.ToString() ?? "";
-                            data.CourseImage = reader["CourseImage"] != DBNull.Value ? GlobalFetchPath + "CourseImages/" + reader["CourseImage"].ToString()
-                                                  : "";
+        //                    data.OldPrice = reader["OldPrice"]?.ToString() ?? "";
+        //                    data.DetailId = reader["DetailId"]?.ToString() ?? "";
+        //                    data.CourseId = reader["CourseId"]?.ToString() ?? "";
+        //                    data.CourseName = reader["CourseName"]?.ToString() ?? "";
+        //                    data.Price = reader["Price"]?.ToString() ?? "";
+        //                    data.Status = reader["Status"]?.ToString() ?? "";
+        //                    data.Description = reader["Description"]?.ToString() ?? "";
+        //                    data.Objectives = reader["Objectives"]?.ToString() ?? "";
+        //                    data.Requirements = reader["Requirements"]?.ToString() ?? "";
+        //                    data.CourseLevel = reader["CourseLevel"]?.ToString() ?? "";
+        //                    data.CreatedAt = reader["CreatedAt"]?.ToString() ?? "";
+        //                    data.UpdatedAt = reader["UpdatedAt"]?.ToString() ?? "";
+        //                    data.CourseImage = reader["CourseImage"] != DBNull.Value ? GlobalFetchPath + "CourseImages/" + reader["CourseImage"].ToString()
+        //                                          : "";
 
-                            allCourses.Add(data);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log the exception if needed
-            }
+        //                    allCourses.Add(data);
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Log the exception if needed
+        //    }
 
-            return allCourses;
-        }
+        //    return allCourses;
+        //}
 
 
 
@@ -229,8 +230,10 @@ namespace Bagchi_Admin_Backend.Services
                     DbHelper.AddParameter(cmd, "@refreshtoken", request.refreshtoken);
                     DbHelper.AddParameter(cmd, "@expiresin", request.expiresin);
                     DbHelper.AddParameter(cmd, "@meetingpassword", request.meetingpassword);
- 
+                    DbHelper.AddParameter(cmd, "@zaktoken", request.zaktoken);
+                     DbHelper.AddParameter(cmd, "@signature", request.Signature);
 
+                    DbHelper.AddParameter(cmd, "teachername", request.teachername);
 
                     DbHelper.AddParameter(cmd, "@Action", "INSERT");
 
@@ -265,51 +268,7 @@ namespace Bagchi_Admin_Backend.Services
 
 
         }
-
-
-        //public string GenerateZoomSignature(string meetingNumber, int role)
-        //{
-        //    string apiKey = _config["Zoom:ClientId"];       // SDK Key (use ClientId here)
-        //    string apiSecret = _config["Zoom:ClientSecret"]; // SDK Secret (use ClientSecret)
-
-        //    // Expiry: 2 mins from now
-        //    var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        //    var exp = ts + 120;
-
-        //    var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(apiSecret));
-        //    var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        //    var header = new JwtHeader(credentials);
-
-        //    var payload = new JwtPayload
-        //{
-        //    { "sdkKey", apiKey },
-        //    { "mn", meetingNumber },
-        //    { "role", role },            // 0 = participant, 1 = host
-        //    { "iat", ts },
-        //    { "exp", exp },
-        //    { "appKey", apiKey },
-        //    { "tokenExp", exp }
-        //};
-
-        //    var secToken = new JwtSecurityToken(header, payload);
-        //    var handler = new JwtSecurityTokenHandler();
-        //    return handler.WriteToken(secToken);
-        //}
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
+         
 
 
   
@@ -436,10 +395,46 @@ namespace Bagchi_Admin_Backend.Services
         }
 
 
+        public async Task<MeetingDetails> GetMeetingDetailsById(long MeetingId)
+        {
+            var details = new MeetingDetails();
 
+            try 
+            {
 
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_GetMeetingDetails";
 
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Clear();
 
+                    DbHelper.AddParameter(cmd, "@MeetingId", MeetingId);
+
+                    await _dbContext.Database.OpenConnectionAsync();
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                             details.Signature = reader["Signature"]?.ToString() ?? "";
+                            details.ZoomPassword = reader["ZoomPassword"]?.ToString() ?? "";
+                            details.TeacherName = reader["TeacherName"]?.ToString() ?? "";
+                            details.ZakToken = reader["ZakToken"]?.ToString() ?? "";
+                            details.MeetingPassword = reader["MeetingPassword"]?.ToString() ?? "";
+
+                         }
+
+                    }
+                } 
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while fetching meeting details: " + ex.Message, ex);
+            }
+
+            return details;
+        }
 
 
 

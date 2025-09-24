@@ -23,20 +23,23 @@ namespace Bagchi_Admin_Backend.Models
         public bool mute_upon_entry { get; set; }
         public int approval_type { get; set; }
         public string batchId { get; set; }
-
-
         public string CourseId { get; set; }
+        public string teachername { get; set; }
 
+         
+        public string? accesstoken { get; set; }
 
+        public string? refreshtoken { get; set; }
 
+         public int? expiresin { get; set; }
 
-        public string accesstoken { get; set; }
+        public string?   meetingpassword { get; set; }
 
-        public string refreshtoken { get; set; }
+        public string? zaktoken { get; set; }
 
-         public int expiresin { get; set; }
-
-        public string meetingpassword { get; set; }
+        public string? Signature { get; set; }
+    
+            public string? zoomcode { get; set; }
     }
 
 
@@ -55,7 +58,7 @@ namespace Bagchi_Admin_Backend.Models
         }
     }
 
-    public class AllCourseDetails
+    public class Class_Dtos
     {
         public string DetailId { get; set; }
         public string CourseId { get; set; }
@@ -130,4 +133,24 @@ namespace Bagchi_Admin_Backend.Models
     }
 
 
+    public class MeetingDetails
+    {
+        public string Signature { get; set; }
+        public string ZoomPassword { get; set; }
+        public string Teacher { get; set; }
+        public string TeacherName { get; set; }
+        public string ZakToken { get; set; }
+        public string MeetingPassword { get; set; }
+    }
+
+
+
+    public class Class_Dto
+    {
+        public int ClassId { get; set; } =  0;
+        public string ClassName { get; set; } = string.Empty;
+        public int Status { get; set; } = 0;
+
+        public string Flag { get; set; } = string.Empty;
+    }
 }

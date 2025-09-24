@@ -2,6 +2,7 @@
 using Bagchi_Admin_Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Text;
@@ -21,165 +22,157 @@ public class ZoomController : ControllerBase
         _liveStreamingService = liveStreamingService;
     }
 
-    [HttpGet("CreateMeeting")]
     //public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
-    public async Task<IActionResult> CreateMeeting([FromQuery] string code, [FromQuery] string state)
-    {
-        try
-        {
-            string clientId = _config["Zoom:ClientId"];
-            string clientSecret = _config["Zoom:ClientSecret"];
-            string redirectUri = _config["Zoom:RedirectUri"];
-
-            var httpClient = _httpClientFactory.CreateClient();
-            var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
-
-            // Exchange code for access token
-            var tokenResponse = await httpClient.PostAsync(
-                $"https://zoom.us/oauth/token?grant_type=authorization_code&code={code}&redirect_uri={redirectUri}",
-                null);
-
-            if (!tokenResponse.IsSuccessStatusCode)
-                return StatusCode((int)tokenResponse.StatusCode, await tokenResponse.Content.ReadAsStringAsync());
-
-            var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
-            var tokenData = JsonSerializer.Deserialize<JsonElement>(tokenJson);
-
-            string accessToken = tokenData.GetProperty("access_token").GetString();
-            string refreshToken = tokenData.GetProperty("refresh_token").GetString();
-            int expiresIn = tokenData.GetProperty("expires_in").GetInt32();
-
-            // 2️⃣ Create a Zoom meeting
-            httpClient.DefaultRequestHeaders.Clear();
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-            var meetingData = new
-            {
-                topic = "Instant Class",       // Can be dynamic from state/course
-                type = 1,                      // Instant meeting
-                duration = 60,
-                timezone = "Asia/Kolkata",
-                agenda = "Live class session",
-                settings = new
-                {
-                    host_video = true,
-                    participant_video = true,
-                    join_before_host = true,
-                    mute_upon_entry = false,
-                    approval_type = 2 // Automatically approve
-                }
-            };
-
-            var content = new StringContent(JsonSerializer.Serialize(meetingData), Encoding.UTF8, "application/json");
-            var meetingResponse = await httpClient.PostAsync("https://api.zoom.us/v2/users/me/meetings", content);
-
-            if (!meetingResponse.IsSuccessStatusCode)
-                return StatusCode((int)meetingResponse.StatusCode, await meetingResponse.Content.ReadAsStringAsync());
-
-            var meetingJson = await meetingResponse.Content.ReadAsStringAsync();
-            var meetingInfo = JsonSerializer.Deserialize<JsonElement>(meetingJson);
-
-            long meetingId = meetingInfo.GetProperty("id").GetInt64();
-            string startUrl = meetingInfo.GetProperty("start_url").GetString();
-            string joinUrl = meetingInfo.GetProperty("join_url").GetString();
-
-            // 3️⃣ Save to database via stored procedure
-            //await _liveStreamingService.SaveZoomMeeting(
-            //    state,          // e.g., courseId passed in state
-            //    meetingId,
-            //    startUrl,
-            //    joinUrl,
-            //    accessToken,
-            //    refreshToken,
-            //    DateTime.UtcNow.AddSeconds(expiresIn)
-            //);
-
-            // 4️⃣ Redirect frontend to classroom page with success flag
-            string redirectUrl = $"http://localhost:4200/home/classroom?courseId={state}&zoom=success";
-            return Redirect(redirectUrl);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = ex.Message });
-        }
-    }
-
-
-     //public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state = "")
+    
+    //[HttpGet("CreateLiveClasss")]
+    //public async Task<IActionResult> CreateMeeting([FromQuery] string state)
     //{
-    //    if (string.IsNullOrEmpty(code))
-    //        return BadRequest(new { error = "Authorization code is missing" });
-
     //    try
     //    {
+
+    //        var IsOngGoingClass = await _liveStreamingService.GetOngoingClasses();   //_liveStreamingService.GetAllCourses();
+
+    //        if (IsOngGoingClass.Count > 0)
+    //        {
+    //            return BadRequest(new
+    //            {
+    //                status = 409,
+    //                message = "Already a Live Class is going on Please Close it"
+    //            });
+    //        }
+
     //        string clientId = _config["Zoom:ClientId"];
     //        string clientSecret = _config["Zoom:ClientSecret"];
-    //        string redirectUri = "https://localhost:7091/api/zoom/callback"; // must match Zoom App settings
+    //        string redirectUri = _config["Zoom:RedirectUri"];
 
     //        var httpClient = _httpClientFactory.CreateClient();
     //        var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
-    //        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authHeader);
+    //        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
 
-    //        // 🔑 Exchange code for access token
-    //        var response = await httpClient.PostAsync(
+    //        // Exchange code for access token
+    //        var tokenResponse = await httpClient.PostAsync(
     //            $"https://zoom.us/oauth/token?grant_type=authorization_code&code={code}&redirect_uri={redirectUri}",
     //            null);
 
-    //        var content = await response.Content.ReadAsStringAsync();
+    //        if (!tokenResponse.IsSuccessStatusCode)
+    //            return StatusCode((int)tokenResponse.StatusCode, await tokenResponse.Content.ReadAsStringAsync());
 
-    //        if (!response.IsSuccessStatusCode)
-    //            return StatusCode((int)response.StatusCode, content);
+    //        var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
+    //        var tokenData = JsonSerializer.Deserialize<JsonElement>(tokenJson);
 
-    //        var tokenData = JsonSerializer.Deserialize<JsonElement>(content);
+    //        string accessToken = tokenData.GetProperty("access_token").GetString();
+    //        string refreshToken = tokenData.GetProperty("refresh_token").GetString();
+    //        int expiresIn = tokenData.GetProperty("expires_in").GetInt32();
 
-    //        return Ok(new
+    //        // 2️⃣ Create a Zoom meeting
+    //        httpClient.DefaultRequestHeaders.Clear();
+    //        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+    //        var meetingData = new
     //        {
-    //            message = "Zoom OAuth Success",
-    //            data = tokenData
-    //        });
-    //    }
+    //            topic = "Instant Class",       // Can be dynamic from state/course
+    //            type = 1,                      // Instant meeting
+    //            duration = 60,
+    //            timezone = "Asia/Kolkata",
+    //            agenda = "Live class session",
+    //            settings = new
+    //            {
+    //                host_video = true,
+    //                participant_video = true,
+    //                join_before_host = true,
+    //                mute_upon_entry = false,
+    //                approval_type = 2 // Automatically approve
+    //            }
+    //        };
+
+    //        var content = new StringContent(JsonSerializer.Serialize(meetingData), Encoding.UTF8, "application/json");
+    //        var meetingResponse = await httpClient.PostAsync("https://api.zoom.us/v2/users/me/meetings", content);
+
+    //        if (!meetingResponse.IsSuccessStatusCode)
+    //            return StatusCode((int)meetingResponse.StatusCode, await meetingResponse.Content.ReadAsStringAsync());
+
+    //        var meetingJson = await meetingResponse.Content.ReadAsStringAsync();
+    //        var meetingInfo = JsonSerializer.Deserialize<JsonElement>(meetingJson);
+
+    //        long meetingId = meetingInfo.GetProperty("id").GetInt64();
+    //        string startUrl = meetingInfo.GetProperty("start_url").GetString();
+    //        string joinUrl = meetingInfo.GetProperty("join_url").GetString();
+ 
+    //        return Ok(new {meetingid = meetingId,zoom = "success"});
+
+    //      }
     //    catch (Exception ex)
     //    {
     //        return StatusCode(500, new { error = ex.Message });
     //    }
     //}
 
-     
 
+   
     [HttpGet("callback")]
-    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
+    public async Task<IActionResult> Callback(string code, string state)
     {
         try
         {
-            // 1️⃣ Parse courseId and batchId from state
-            string decodedState = System.Net.WebUtility.HtmlDecode(state);
+            if (string.IsNullOrEmpty(code))
+                return BadRequest("Zoom code missing");
 
-
-
+            // Decode state safely
+            string decodedState = System.Net.WebUtility.UrlDecode(state);
+            decodedState = decodedState.Replace("&quot;", "\""); // Fix HTML entity
  
-            // 2️⃣ Parse as JsonDocument
-            using var doc = JsonDocument.Parse(decodedState);
+            // Exchange code for access token (optional here)
+            // ...
 
-            var payload = doc.RootElement.GetProperty("payload");
+            // Return small HTML for popup to send message back to Angular
+            string html = $@"
+            <html>
+            <body>
+            <script>
+                window.opener.postMessage({{ zoomCode: '{code}', state: '{decodedState}' }}, '*');
+                window.close();
+            </script>
+            </body>
+            </html>";
+
+            return Content(html, "text/html");
+        }
+        catch (Exception ex)
+        {
+            // Log exception
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+
+
+
+
+
+
+
+    [HttpPost("CreateLiveClass")]
+    public async Task<IActionResult> Callbacks([FromBody] LiveSessionRequest liveSessionRequest)
+    {
+        try
+        { 
 
             var payloadobj = new LiveSessionRequest();
 
-            payloadobj.topic = payload.GetProperty("topic").GetString();
-            payloadobj.type = payload.GetProperty("type").GetInt32();
-            payloadobj.duration  = payload.GetProperty("duration").GetInt32();
-             payloadobj.timezone = payload.GetProperty("timezone").GetString();
-            payloadobj.agenda = payload.GetProperty("agenda").GetString();
-            payloadobj. host_video = payload.GetProperty("host_video").GetBoolean();
-             payloadobj.participant_video = payload.GetProperty("participant_video").GetBoolean();
-             payloadobj. join_before_host = payload.GetProperty("join_before_host").GetBoolean();
-             payloadobj. mute_upon_entry = payload.GetProperty("mute_upon_entry").GetBoolean();
-             payloadobj. approval_type = payload.GetProperty("approval_type").GetInt32();
-             payloadobj. batchId = payload.GetProperty("batchId").GetInt32().ToString();
-            payloadobj.CourseId = payload.GetProperty("courseId").GetInt32().ToString();
-            // Deserialize JSON
+            payloadobj.topic = liveSessionRequest.topic;
+            payloadobj.type = liveSessionRequest.type;
+            payloadobj.duration = liveSessionRequest.duration;
+            payloadobj.timezone = liveSessionRequest.timezone;
+            payloadobj.agenda = liveSessionRequest.agenda;
+            payloadobj.host_video = liveSessionRequest.host_video;
+            payloadobj.participant_video = liveSessionRequest.participant_video;
+            payloadobj.join_before_host = liveSessionRequest.join_before_host;
+            payloadobj.mute_upon_entry = liveSessionRequest.mute_upon_entry;
+            payloadobj.approval_type = liveSessionRequest.approval_type;
+            payloadobj.batchId = liveSessionRequest.batchId;
+            payloadobj.CourseId = liveSessionRequest.CourseId;
+            payloadobj.zoomcode = liveSessionRequest.zoomcode;
 
-            var stateObj = JsonSerializer.Deserialize<LiveSessionRequest>(decodedState);
             string clientId = _config["Zoom:ClientId"];
             string clientSecret = _config["Zoom:ClientSecret"];
             string redirectUri = _config["Zoom:RedirectUri"];
@@ -191,7 +184,7 @@ public class ZoomController : ControllerBase
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
 
             var tokenResponse = await httpClient.PostAsync(
-                $"https://zoom.us/oauth/token?grant_type=authorization_code&code={code}&redirect_uri={redirectUri}",
+                $"https://zoom.us/oauth/token?grant_type=authorization_code&code={payloadobj.zoomcode}&redirect_uri={redirectUri}",
                 null);
 
             if (!tokenResponse.IsSuccessStatusCode)
@@ -211,17 +204,17 @@ public class ZoomController : ControllerBase
             var meetingData = new
             {
                 topic = "Instant Class", // You can pass dynamically from Angular
-                type = 1, // 1 = Instant meeting
+                type = payloadobj.type, // 1 = Instant meeting
                 duration = 60,
                 timezone = "Asia/Kolkata",
                 agenda = "Live class session",
                 settings = new
                 {
-                    host_video = true,
-                    participant_video = true,
-                    join_before_host = true,
-                    mute_upon_entry = false,
-                    approval_type = 2,
+                    host_video = payloadobj.host_video,
+                    participant_video = payloadobj.participant_video,
+                    join_before_host = payloadobj.join_before_host,
+                    mute_upon_entry = payloadobj.mute_upon_entry,
+                    approval_type = payloadobj.approval_type,
                    password= "123"
 
                 }
@@ -240,34 +233,37 @@ public class ZoomController : ControllerBase
             string startUrl = meetingInfo.GetProperty("start_url").GetString();
             string joinUrl = meetingInfo.GetProperty("join_url").GetString();
 
-            // 4️⃣ Save everything to database
-            //await _liveStreamingService.SaveZoomMeeting(
-            //    stateObj.CourseId,
-            //    stateObj.BatchId,
-            //    meetingId,
-            //    startUrl,
-            //    joinUrl,
-            //    accessToken,
-            //    refreshToken,
-            //    DateTime.UtcNow.AddSeconds(expiresIn)
-            //);
-            string meetingPasscode = meetingInfo.TryGetProperty("password", out var pwdProp)
-    ? pwdProp.GetString()
-    : null;
+            string meetingPasscode = meetingInfo.TryGetProperty("password", out var pwdProp)    ? pwdProp.GetString()    : null;
+
+            httpClient.DefaultRequestHeaders.Clear();
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            var zakResponse = await httpClient.GetAsync("https://api.zoom.us/v2/users/me/token?type=zak");
+            zakResponse.EnsureSuccessStatusCode();
+
+            var zakJson = await zakResponse.Content.ReadAsStringAsync();
+            var zakData = JsonSerializer.Deserialize<JsonElement>(zakJson);
+            string zakToken = zakData.GetProperty("token").GetString();
+
+             
 
 
             payloadobj.accesstoken = accessToken;
             payloadobj.refreshtoken = refreshToken;
             payloadobj.expiresin = expiresIn;
             payloadobj.meetingpassword = meetingPasscode;
+            payloadobj.zaktoken = zakToken;
+            payloadobj.Signature = GenerateSignature(meetingId,1);
+            payloadobj.teachername = liveSessionRequest.teachername;
+            //get signature 
 
             var savemeetingsdetails =   await _liveStreamingService.InsertLiveClass_start(payloadobj, meetingId, startUrl, joinUrl);
 
+            string redirectUrl = $"http://localhost:4200/home/classroom?courseId={payloadobj.CourseId}&zoom=success&meetingid={meetingId}";
 
-            // 5️⃣ Redirect to Angular classroom page
-            string redirectUrl = $"http://localhost:4200/home/classroom?courseId={stateObj.CourseId}&zoom=success";
-            return Redirect(redirectUrl);
-        }
+
+            return Ok(new { StatusCode = 200, Message = "Call back success", Url = redirectUrl,meetingid = meetingId });
+         }
         catch (Exception ex)
         {
             return StatusCode(500, new { error = ex.Message });
@@ -276,15 +272,7 @@ public class ZoomController : ControllerBase
 
 
 
-
-
-
-
-
-
-
-
-
+     
 
 
     /// <summary>
@@ -328,4 +316,74 @@ public class ZoomController : ControllerBase
         var token = new JwtSecurityToken(header, payload);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private async Task<IActionResult> EndMeeting(long meetingId, string accessToken)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(new { action = "end" }),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await httpClient.PutAsync(
+            $"https://api.zoom.us/v2/meetings/{meetingId}/status",
+            content
+        );
+
+        if (!response.IsSuccessStatusCode)
+            return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+
+        return Ok("Meeting ended successfully.");
+    }
+
+
+
+    [HttpGet("GetMeetingDetails")]
+    public async Task<IActionResult> GetMeetingDetails(long MeetingId)
+    {
+        try
+        {
+
+            var result = await _liveStreamingService.GetMeetingDetailsById(MeetingId);
+            return Ok(result);
+
+        }catch(Exception ex)
+        {
+
+        }
+
+        return BadRequest();
+        
+    }
+
+
+
+
+
+    [HttpGet("GetActiveMeetingsAsync")] 
+        public async Task<JsonElement> GetLiveMeetings(string accessToken)
+    {
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        string url = "https://api.zoom.us/v2/users/me/meetings?type=live";
+
+        var response = await client.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Zoom API Error: {response.StatusCode}, {content}");
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<JsonElement>(json);
+    }
+ 
 }
+
+
