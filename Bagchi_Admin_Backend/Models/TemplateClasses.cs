@@ -153,4 +153,27 @@ namespace Bagchi_Admin_Backend.Models
 
         public string Flag { get; set; } = string.Empty;
     }
+
+    public class Board_Dto
+    {
+        public int BoardId { get; set; } = 0;
+        public string BoardName { get; set; } = string.Empty;
+        public int Status { get; set; } = 0;
+
+        public string Flag { get; set; } = string.Empty;
+    }
+
+    public class Subject_Dto
+    {
+        public int SubjectId { get; set; } = 0;
+        public int ClassId { get; set; } = 0;
+        public string SubjectName { get; set; } = string.Empty;
+        public int Status { get; set; } = 0;
+
+        public int BoardId { get; set; } = 0;
+
+        public string Flag { get; set; } = string.Empty;
+    }
+
+
 }

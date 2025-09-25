@@ -28,9 +28,16 @@
     {
         Task<List<Class_Dto>> GetAvailableClasses();
         Task<bool> AddUpdateClass(Class_Dto dto);
-
         Task<bool> DeleteClass(int Classid);
 
+        Task<List<Board_Dto>> GetAvailableBoards();
+        Task<bool> AddUpdateBoards(Board_Dto dto);
+        Task<bool> DeleteBoard(int boardid);
+
+
+        Task<List<Subject_Dto>> GetAvailableSubjects();
+        Task<bool> AddUpdateSubjects(Subject_Dto dto);
+        Task<bool> DeleteSubjects(int subjectid);
 
     }
 }
