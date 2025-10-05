@@ -176,4 +176,88 @@ namespace Bagchi_Admin_Backend.Models
     }
 
 
+    public class Highlight
+    {
+        public string text { get; set; }
+    }
+
+    public class Requirement
+    {
+        public string text { get; set; }
+    }
+
+    public class Objective
+    {
+        public string text { get; set; }
+    }
+
+    public class Batch
+    {
+        public string batchName { get; set; }
+        public int batch_classId { get; set; }
+        public int batch_subjectId { get; set; }
+        public int batch_boardId { get; set; }
+        public DateTime startDate { get; set; }
+        public DateTime endDate { get; set; }
+        public TimeSpan startTime { get; set; }
+        public TimeSpan endTime { get; set; }
+
+        public int btachId { get; set; }
+    }
+
+    public class Installment
+    {
+        public int InstallmentNumber { get; set; }
+        public decimal Amount { get; set; }
+        public int DueDaysFromStart { get; set; }
+        public string Remarks { get; set; }
+
+        public string TotalInstallments { get; set; } = string.Empty;
+    }
+
+    public class CoursePackageDto
+    {
+        public string CourseName { get; set; }
+        public string CourseLevel { get; set; }
+        public int ClassId { get; set; }
+        public int BoardId { get; set; }
+        public List<int> SubjectId { get; set; }
+        public decimal Price { get; set; }
+        public decimal OldPrice { get; set; }
+        public string Duration { get; set; }
+        public string ShortDescription { get; set; }
+        public string Overview { get; set; }
+        public List<string> Highlights { get; set; }
+
+        public List<string> Requirements { get; set; }
+        public List<string> Objectives { get; set; }
+        public List<Batch> Batches { get; set; }
+        public string PaymentType { get; set; }
+        public List<Installment> Installments { get; set; }
+        public int Status { get; set; }
+
+        public string CourseImageName { get; set; }
+        public string IsEditing { get; set; }
+
+        public int CourseId { get; set; } = 0;
+
+        public string ImagewithPath { get; set; } = string.Empty;
+    }
+
+
+    public class CourseDetailsDto  
+    {
+        public string ShortDescription { get; set; }
+        public string Overview { get; set; }
+        public string Duration { get; set; }
+        public string Level { get; set; }
+        public List<string> Highlights { get; set; }
+    }
+
+    public class DbResponse
+    {
+        public string StatusCode { get; set; }
+        public string Message { get; set; }
+    }
+
 }

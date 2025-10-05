@@ -232,16 +232,10 @@ namespace Bagchi_Admin_Backend.Services
                     DbHelper.AddParameter(cmd, "@meetingpassword", request.meetingpassword);
                     DbHelper.AddParameter(cmd, "@zaktoken", request.zaktoken);
                      DbHelper.AddParameter(cmd, "@signature", request.Signature);
-
                     DbHelper.AddParameter(cmd, "teachername", request.teachername);
+                    DbHelper.AddParameter(cmd, "@Action", "INSERT"); 
 
-                    DbHelper.AddParameter(cmd, "@Action", "INSERT");
-
-
-
-
-                    await _dbContext.Database.OpenConnectionAsync();
-
+                    await _dbContext.Database.OpenConnectionAsync(); 
 
                     var result = await cmd.ExecuteNonQueryAsync();
 

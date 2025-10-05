@@ -1,4 +1,6 @@
-﻿namespace Bagchi_Admin_Backend.Models
+﻿using static Bagchi_Admin_Backend.Services.CourseService;
+
+namespace Bagchi_Admin_Backend.Models
 {
     public interface ProjectInterface
     {
@@ -39,5 +41,12 @@
         Task<bool> AddUpdateSubjects(Subject_Dto dto);
         Task<bool> DeleteSubjects(int subjectid);
 
+
+
+        ValidationResultDto ValidateCoursePackage(CoursePackageDto course);
+        Task<DbResponse> AddUpdateCoursePackagewithDetails(CoursePackageDto course);
+      
+
+        Task<Tuple<CoursePackageDto, CourseDetailsDto>> GetCoursePackageDetails(int courseId);
     }
 }
