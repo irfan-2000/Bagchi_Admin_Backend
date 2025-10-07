@@ -48,5 +48,7 @@ namespace Bagchi_Admin_Backend.Models
       
 
         Task<Tuple<CoursePackageDto, CourseDetailsDto>> GetCoursePackageDetails(int courseId);
+
+        Task<List<AllCourseDetails>> GetAllCourses();
     }
 }

@@ -29,61 +29,8 @@ namespace Bagchi_Admin_Backend.Services
         }
 
 
-        //public async Task<List<AllCourseDetails>> GetAllCourses()
-        //{
-        //    List<AllCourseDetails> allCourses = new List<AllCourseDetails>();
 
-        //    try
-        //    {
-        //        using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
-        //        {
-        //            cmd.CommandText = "sp_Manage_CourseDetails";
-        //            cmd.CommandType = CommandType.StoredProcedure;
-
-        //            // Parameters
-        //            DbHelper.AddParameter(cmd, "@From", "U");
-        //            DbHelper.AddParameter(cmd, "@Flag", "GA");
-
-        //            await _dbContext.Database.OpenConnectionAsync();
-
-        //            using (var reader = await cmd.ExecuteReaderAsync())
-        //            {
-        //                while (await reader.ReadAsync())
-        //                {
-        //                    AllCourseDetails data = new AllCourseDetails();
-
-        //                    data.OldPrice = reader["OldPrice"]?.ToString() ?? "";
-        //                    data.DetailId = reader["DetailId"]?.ToString() ?? "";
-        //                    data.CourseId = reader["CourseId"]?.ToString() ?? "";
-        //                    data.CourseName = reader["CourseName"]?.ToString() ?? "";
-        //                    data.Price = reader["Price"]?.ToString() ?? "";
-        //                    data.Status = reader["Status"]?.ToString() ?? "";
-        //                    data.Description = reader["Description"]?.ToString() ?? "";
-        //                    data.Objectives = reader["Objectives"]?.ToString() ?? "";
-        //                    data.Requirements = reader["Requirements"]?.ToString() ?? "";
-        //                    data.CourseLevel = reader["CourseLevel"]?.ToString() ?? "";
-        //                    data.CreatedAt = reader["CreatedAt"]?.ToString() ?? "";
-        //                    data.UpdatedAt = reader["UpdatedAt"]?.ToString() ?? "";
-        //                    data.CourseImage = reader["CourseImage"] != DBNull.Value ? GlobalFetchPath + "CourseImages/" + reader["CourseImage"].ToString()
-        //                                          : "";
-
-        //                    allCourses.Add(data);
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // Log the exception if needed
-        //    }
-
-        //    return allCourses;
-        //}
-
-
-
-
-       public async Task<List<LiveSession>> GetOngoingClasses()
+        public async Task<List<LiveSession>> GetOngoingClasses()
         {
             List<LiveSession> classes = new List<LiveSession>();
 

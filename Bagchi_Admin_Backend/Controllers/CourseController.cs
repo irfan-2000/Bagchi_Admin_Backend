@@ -17,7 +17,7 @@ namespace Bagchi_Admin_Backend.Controllers
         private readonly IConfiguration _config;
 
 
-        public CourseController(ICourseService courseService, IWebHostEnvironment env , IConfiguration Iconfiguration)
+        public CourseController(ICourseService courseService, IWebHostEnvironment env, IConfiguration Iconfiguration)
         {
             _courseservice = courseService;
             _env = env;
@@ -48,7 +48,7 @@ namespace Bagchi_Admin_Backend.Controllers
         [HttpPost("AddUpdateClass")]
         public async Task<IActionResult> AddUpdateClass(Class_Dto class_Dto)
         {
-            
+
             try
             {
                 var result = await _courseservice.AddUpdateClass(class_Dto);
@@ -67,10 +67,10 @@ namespace Bagchi_Admin_Backend.Controllers
             }
         }
 
-         [HttpPost("DeleteClass")]
-        public async Task<IActionResult> DeleteClass([FromQuery]  int Classid)
+        [HttpPost("DeleteClass")]
+        public async Task<IActionResult> DeleteClass([FromQuery] int Classid)
         {
-            
+
             try
             {
                 var result = await _courseservice.DeleteClass(Classid);
@@ -221,7 +221,7 @@ namespace Bagchi_Admin_Backend.Controllers
 
 
         [HttpPost("AddUpdateCoursePackagewithDetails")]
-        public async Task<IActionResult>AddUpdateCoursePackagewithDetails()
+        public async Task<IActionResult> AddUpdateCoursePackagewithDetails()
         {
             try
             {
@@ -249,16 +249,16 @@ namespace Bagchi_Admin_Backend.Controllers
                 var batches = JsonSerializer.Deserialize<List<Batch>>(form["batches"]);
                 var installments = JsonSerializer.Deserialize<List<Installment>>(form["installments"]);
 
-                var CourseId  = form["CourseId"].ToString();
-                
+                var CourseId = form["CourseId"].ToString();
+
 
                 string IsEditing = form["IsEditing"];
 
-                if(Convert.ToBoolean(IsEditing))
+                if (Convert.ToBoolean(IsEditing))
                 {
-                    if(CourseId == null || CourseId == "" || CourseId == "undefined" || CourseId == "0")
+                    if (CourseId == null || CourseId == "" || CourseId == "undefined" || CourseId == "0")
                     {
-                        return BadRequest(new { Message = "CourseId not Found"});
+                        return BadRequest(new { Message = "CourseId not Found" });
                     }
 
                 }
@@ -295,7 +295,7 @@ namespace Bagchi_Admin_Backend.Controllers
                     return BadRequest(validationResult);
 
 
-                if (Convert.ToBoolean(IsEditing) )
+                if (Convert.ToBoolean(IsEditing))
                 {
 
                     if (CourseImage == null || CourseImage.Length <= 0)
@@ -341,7 +341,7 @@ namespace Bagchi_Admin_Backend.Controllers
                     {
                         if (CourseImage != null && CourseImage.Length > 0)
                         {
-                            var fullPath = Path.Combine( GlobalPhysicalPath);
+                            var fullPath = Path.Combine(GlobalPhysicalPath);
 
                             var uploadsFolder = Path.Combine(GlobalPhysicalPath, "CourseImages");
 
@@ -352,8 +352,8 @@ namespace Bagchi_Admin_Backend.Controllers
                             {
                                 await CourseImage.CopyToAsync(fileStream);
                             }
-                             CourseImageName = randomFileName;
-                             
+                            CourseImageName = randomFileName;
+
                         }
 
                     }
@@ -373,16 +373,16 @@ namespace Bagchi_Admin_Backend.Controllers
                 courseDto.CourseImageName = CourseImageName;
 
 
-                  var result = await _courseservice.AddUpdateCoursePackagewithDetails(courseDto);
-                if(result.StatusCode == "1")
+                var result = await _courseservice.AddUpdateCoursePackagewithDetails(courseDto);
+                if (result.StatusCode == "1")
                 {
-                    return Ok(new { statuscode = "200",message = "Details has been saved" });
+                    return Ok(new { statuscode = "200", message = "Details has been saved" });
                 }
                 else
                 {
                     return BadRequest();
                 }
-                
+
 
             }
             catch (Exception ex)
@@ -410,11 +410,28 @@ namespace Bagchi_Admin_Backend.Controllers
 
 
 
+        [HttpGet("GetAllCourses")]
+        public async Task<IActionResult> GetAllCourses()
+        {
+            try
+            {
+                var result = await _courseservice.GetAllCourses();
+                return Ok(new { Result = result, Message = "Result fetch success", StatusCode = 200 });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    StatusCode = 500,
+                    Message = ex.Message
+                });
+            }
 
 
 
 
 
-
+        }
     }
 }
+

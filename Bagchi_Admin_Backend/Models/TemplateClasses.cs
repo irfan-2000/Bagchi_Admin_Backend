@@ -259,5 +259,29 @@ namespace Bagchi_Admin_Backend.Models
         public string StatusCode { get; set; }
         public string Message { get; set; }
     }
+ 
+    public class AllCourseDetails
+    {
+        public string CourseId { get; set; }
+        public string CourseName { get; set; }
+        public string ClassId { get; set; }
+        public string BoardId { get; set; }
+        public string Status { get; set; }
+        public string Price { get; set; }
+        public string SubjectId { get; set; }
+        public string OldPrice { get; set; }
+        public string CourseCreatedAt { get; set; }
+        public string CourseUpdatedAt { get; set; }
+        public string DetailId { get; set; }
+        public string Description { get; set; }
+        public string Objectives { get; set; }
+        public string Requirements { get; set; }
+        public string DetailCreatedAt { get; set; }
+        public string DetailUpdatedAt { get; set; }
+        public string CourseLevel { get; set; }
+        public string CourseImage { get; set; }
+    }
+
+
 
 }

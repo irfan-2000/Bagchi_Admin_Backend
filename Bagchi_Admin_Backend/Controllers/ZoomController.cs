@@ -2,6 +2,7 @@
 using Bagchi_Admin_Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
@@ -191,7 +192,7 @@ public class ZoomController : ControllerBase
                 return StatusCode((int)tokenResponse.StatusCode, await tokenResponse.Content.ReadAsStringAsync());
 
             var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
-            var tokenData = JsonSerializer.Deserialize<JsonElement>(tokenJson);
+            var tokenData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(tokenJson);
 
             string accessToken = tokenData.GetProperty("access_token").GetString();
             string refreshToken = tokenData.GetProperty("refresh_token").GetString();
@@ -220,14 +221,14 @@ public class ZoomController : ControllerBase
                 }
             };
 
-            var content = new StringContent(JsonSerializer.Serialize(meetingData), Encoding.UTF8, "application/json");
+            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(meetingData), Encoding.UTF8, "application/json");
             var meetingResponse = await httpClient.PostAsync("https://api.zoom.us/v2/users/me/meetings", content);
 
             if (!meetingResponse.IsSuccessStatusCode)
                 return StatusCode((int)meetingResponse.StatusCode, await meetingResponse.Content.ReadAsStringAsync());
 
             var meetingJson = await meetingResponse.Content.ReadAsStringAsync();
-            var meetingInfo = JsonSerializer.Deserialize<JsonElement>(meetingJson);
+            var meetingInfo = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(meetingJson);
 
             long meetingId = meetingInfo.GetProperty("id").GetInt64();
             string startUrl = meetingInfo.GetProperty("start_url").GetString();
@@ -242,7 +243,7 @@ public class ZoomController : ControllerBase
             zakResponse.EnsureSuccessStatusCode();
 
             var zakJson = await zakResponse.Content.ReadAsStringAsync();
-            var zakData = JsonSerializer.Deserialize<JsonElement>(zakJson);
+            var zakData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(zakJson);
             string zakToken = zakData.GetProperty("token").GetString();
 
              
@@ -324,7 +325,7 @@ public class ZoomController : ControllerBase
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
         var content = new StringContent(
-            JsonSerializer.Serialize(new { action = "end" }),
+            System.Text.Json.JsonSerializer.Serialize(new { action = "end" }),
             Encoding.UTF8,
             "application/json"
         );
@@ -361,8 +362,7 @@ public class ZoomController : ControllerBase
     }
 
 
-
-
+     
 
     [HttpGet("GetActiveMeetingsAsync")] 
         public async Task<JsonElement> GetLiveMeetings(string accessToken)
@@ -381,9 +381,93 @@ public class ZoomController : ControllerBase
         }
 
         var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<JsonElement>(json);
+        return System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
     }
- 
+
+
+    public class ZoomWebhookEvent
+    {
+        public string Event { get; set; }
+        public Payload Payload { get; set; }
+        public long EventTs { get; set; }
+    }
+
+    public class Payload
+    {
+        public string AccountId { get; set; }
+        public ZoomMeetingObject Object { get; set; }
+    }
+
+    public class ZoomMeetingObject
+    {
+        public long Id { get; set; }
+        public string HostId { get; set; }
+        public string Topic { get; set; }
+        public int Type { get; set; }
+        public int Duration { get; set; }
+        public string StartTime { get; set; }
+        public string Timezone { get; set; }
+        public string Uuid { get; set; }
+
+        public string UserId { get; set; } = string.Empty;
+
+        public string UserName { get; set; } = string.Empty;
+    }
+
+
+    [HttpPost("meetingstatus_webhook")]
+     public async Task<IActionResult> MeetingStatusWebhook([FromBody] dynamic payload)
+    {
+        try
+        {
+            string jsonString = Convert.ToString(payload);
+            ZoomWebhookEvent zoomEvent = JsonConvert.DeserializeObject<ZoomWebhookEvent>(jsonString);
+
+            if (zoomEvent == null)
+                return BadRequest("Invalid payload");
+
+            string eventType = zoomEvent.Event;
+            var meeting = zoomEvent.Payload.Object;
+
+            switch (eventType)
+            {
+                case "meeting.started":
+                    Console.WriteLine($"Meeting Started: {meeting.Topic}, Host: {meeting.HostId}");
+                    // Save start time to DB
+                    break;
+
+                case "meeting.ended":
+                    Console.WriteLine($"Meeting Ended for All: {meeting.Topic}, Host: {meeting.HostId}");
+                    // Save end time to DB
+                        break;
+
+                case "meeting.participant_left":
+                    string userId = meeting.UserId;
+                    if (userId == meeting.HostId)
+                    {
+                        Console.WriteLine($"Host Left Meeting: {meeting.Topic}, Host: {meeting.HostId}");
+                        // Save host-left info to DB, meeting still active
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Participant Left: {meeting.Topic}, User: {meeting.UserName}");
+                    }
+                    break;
+
+                case "meeting.participant_joined":
+                    Console.WriteLine($"Participant Joined: {meeting.Topic}, User: {meeting.UserName}");
+                    break;
+            }
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing webhook: {ex.Message}");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
 }
 
 
