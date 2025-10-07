@@ -102,6 +102,12 @@ namespace Bagchi_Admin_Backend.Models
         public string Status { get; set; }
         public string CreatedAt { get; set; }
         public string UpdatedAt { get; set; }
+
+        public string Teachername { get; set; }
+
+        public string Batchname { get; set; }
+
+        public string Classname { get; set; }
     }
 
 

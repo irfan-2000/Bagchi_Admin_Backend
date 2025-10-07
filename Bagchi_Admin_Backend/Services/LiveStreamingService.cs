@@ -73,6 +73,9 @@ namespace Bagchi_Admin_Backend.Services
                             session.Status = reader["Status"]?.ToString() ?? "";
                             session.CreatedAt = reader["CreatedAt"]?.ToString() ?? "";
                             session.UpdatedAt = reader["UpdatedAt"]?.ToString() ?? "";
+                            session.Teachername = reader["teachername"]?.ToString() ?? "";
+                            session.Batchname = reader["BatchName"].ToString() ?? "";
+                            session.Classname = reader["ClassName"].ToString() ?? "";
 
                             classes.Add(session);
                         }

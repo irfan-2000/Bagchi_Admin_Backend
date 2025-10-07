@@ -243,31 +243,7 @@ namespace Bagchi_Admin_Backend.Controllers
 
          
 
-        [HttpGet("GetOnGoingClasses")]
-        public async Task<IActionResult> GetOnGoingClasses()
-        {
-            try
-            {
-                var result = await _liveStreamingService.GetOngoingClasses();   //_liveStreamingService.GetAllCourses();
-
-                if (result != null && result.Any())
-                {
-                    return Ok(new { Status = 200, Message = "Success", Result = result });
-                }
-                else
-                {
-                    return Ok(new { Status = 204, Message = "No classes found", Result = (object)null });
-                } 
-
-            }
-            catch(Exception ex)
-            {
-                return StatusCode(500, new { Status = 500, Message = "Internal Server Error: " + ex.Message });
-
-
-            }
-        }
-
+        
 
 
         [HttpGet("GetBatchesById")]

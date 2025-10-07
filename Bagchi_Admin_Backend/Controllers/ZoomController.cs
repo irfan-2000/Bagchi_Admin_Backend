@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -16,11 +17,21 @@ public class ZoomController : ControllerBase
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILiveStreamingService _liveStreamingService; // Your service to handle DB/SP
+
+    public string clientId { get; } 
+    public string clientSecret   { get; } 
+
+    public string redirectUri { get; }
+
     public ZoomController(IConfiguration config, IHttpClientFactory httpClientFactory, ILiveStreamingService liveStreamingService)
     {
         _httpClientFactory = httpClientFactory;
         _config = config;
         _liveStreamingService = liveStreamingService;
+
+        clientId = _config["Zoom:ClientId"];
+        clientSecret = _config["Zoom:ClientSecret"];
+        redirectUri = _config["Zoom:RedirectUri"];
     }
 
     //public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
@@ -145,6 +156,46 @@ public class ZoomController : ControllerBase
         }
     }
 
+    [HttpGet("GetZakToken")]
+    public async Task<IActionResult> GetZakToken([FromQuery] string accessToken)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(accessToken))
+                return BadRequest("Access token is required");
+
+            var httpClient = _httpClientFactory.CreateClient();
+
+            // Set Bearer token
+            httpClient.DefaultRequestHeaders.Clear();
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            // Call Zoom API to generate ZAK token for host
+            var response = await httpClient.GetAsync("https://api.zoom.us/v2/users/me/token?type=zak");
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                return StatusCode((int)response.StatusCode, new { error = err });
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var zakData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
+
+            string zakToken = zakData.GetProperty("token").GetString();
+
+            return Ok(new
+            {
+                StatusCode = 200,
+                ZAK = zakToken,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(20) // ZAK tokens are short-lived
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
 
 
 
@@ -269,11 +320,7 @@ public class ZoomController : ControllerBase
         {
             return StatusCode(500, new { error = ex.Message });
         }
-    }
-
-
-
-     
+    } 
 
 
     /// <summary>
@@ -365,7 +412,7 @@ public class ZoomController : ControllerBase
      
 
     [HttpGet("GetActiveMeetingsAsync")] 
-        public async Task<JsonElement> GetLiveMeetings(string accessToken)
+     public async Task<JsonElement> GetLiveMeetings(string accessToken)
     {
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -467,6 +514,180 @@ public class ZoomController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
+
+    private readonly string _baseUrl = "https://api.zoom.us/v2";
+
+    [HttpPost("GetLiveMeetingsAsync")]
+    public async Task<List<MeetingInfo>> GetLiveMeetingsAsync(string userId, string accessToken)
+    {
+        // Create a new HttpClient from the factory
+        var client = _httpClientFactory.CreateClient();
+
+        var url = $"{_baseUrl}/users/{userId}/meetings?type=live&page_size=30";
+        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var resp = await client.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var err = await resp.Content.ReadAsStringAsync();
+            throw new Exception($"Zoom API error: {resp.StatusCode} - {err}");
+        }
+
+        var json = await resp.Content.ReadAsStringAsync();
+        var obj = JsonConvert.DeserializeObject<ZoomListMeetingsResponse>(json);
+
+        return obj?.Meetings ?? new List<MeetingInfo>();
+    }
+
+    [HttpPost("EndMeetingAsync")]
+    public async Task EndMeetingAsync(long meetingId, string accessToken)
+    {
+        var client = _httpClientFactory.CreateClient();
+
+        var url = $"{_baseUrl}/meetings/{meetingId}/status";
+        var req = new HttpRequestMessage(HttpMethod.Put, url);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var payload = new { action = "end" };
+        req.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+
+        var resp = await client.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var err = await resp.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to end meeting: {resp.StatusCode} - {err}");
+        }
+    }
+
+
+    public class ZoomListMeetingsResponse
+    {
+        [JsonProperty("page_count")] public int PageCount { get; set; }
+        [JsonProperty("page_size")] public int PageSize { get; set; }
+        [JsonProperty("total_records")] public int TotalRecords { get; set; }
+        [JsonProperty("meetings")] public List<MeetingInfo> Meetings { get; set; }
+    }
+
+    public class MeetingInfo
+    {
+        [JsonProperty("id")] public long Id { get; set; }
+        [JsonProperty("topic")] public string Topic { get; set; }
+        [JsonProperty("start_time")] public string StartTime { get; set; }
+        // add other fields as needed
+    }
+
+    //[HttpPost("GetAccessToken")]
+    //public async Task<ZoomTokenResponse> GetAccessTokenAsync(string authorizationCode)
+    //{
+    //    var httpClient = _httpClientFactory.CreateClient();
+    //    string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+    //    var request = new HttpRequestMessage(HttpMethod.Post, "https://zoom.us/oauth/token");
+    //    request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+    //    request.Content = new FormUrlEncodedContent(new[] {
+    //        new KeyValuePair<string, string>("grant_type", "authorization_code"), 
+    //        new KeyValuePair<string, string>("code", authorizationCode), 
+    //        new KeyValuePair<string, string>("redirect_uri", redirectUri) });
+    //    var response = await httpClient.SendAsync(request); 
+    //    var content = await response.Content.ReadAsStringAsync(); 
+    //    if (!response.IsSuccessStatusCode) 
+    //    { throw new Exception($"Failed to get access token: {response.StatusCode} {content}"); } 
+    //    return JsonConvert.DeserializeObject<ZoomTokenResponse>(content); 
+    //}
+
+
+    //public class ZoomTokenResponse { 
+    //    [JsonProperty("access_token")] public string AccessToken { get; set; } 
+    //    [JsonProperty("token_type")] public string TokenType { get; set; }
+    //    [JsonProperty("refresh_token")] public string RefreshToken { get; set; } 
+    //    [JsonProperty("expires_in")] public int ExpiresIn { get; set; }
+    //    [JsonProperty("scope")] public string Scope { get; set; }
+    //}
+
+
+    [HttpPost("RefreshAccessToken")]
+    public async Task<IActionResult> RefreshAccessToken([FromBody]  string  refreshTokenRequest)
+    {
+        try
+        {
+            string clientId = _config["Zoom:ClientId"];
+            string clientSecret = _config["Zoom:ClientSecret"];
+            string refreshToken = refreshTokenRequest;
+
+            var httpClient = _httpClientFactory.CreateClient();
+
+            // Prepare the authorization header
+            var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
+
+            // Prepare the request body
+            var requestBody = new Dictionary<string, string>
+        {
+            { "grant_type", "refresh_token" },
+            { "refresh_token", refreshToken }
+        };
+
+            var content = new FormUrlEncodedContent(requestBody);
+
+            // Send the request to Zoom's token endpoint
+            var tokenResponse = await httpClient.PostAsync("https://zoom.us/oauth/token", content);
+
+            if (!tokenResponse.IsSuccessStatusCode)
+                return StatusCode((int)tokenResponse.StatusCode, await tokenResponse.Content.ReadAsStringAsync());
+
+            var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
+            var tokenData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(tokenJson);
+
+            string newAccessToken = tokenData.GetProperty("access_token").GetString();
+            string newRefreshToken = tokenData.GetProperty("refresh_token").GetString();
+            int expiresIn = tokenData.GetProperty("expires_in").GetInt32();
+
+            // Update the stored tokens in your database
+          //  await _liveStreamingService.UpdateTokens(refreshTokenRequest.UserId, newAccessToken, newRefreshToken, expiresIn);
+
+            return Ok(new
+            {
+                StatusCode = 200,
+                Message = "Access token refreshed successfully",
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken,
+                ExpiresIn = expiresIn
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+
+    [HttpGet("GetOnGoingClasses")]
+    public async Task<IActionResult> GetOnGoingClasses()
+    {
+        try
+        {
+            var result = await _liveStreamingService.GetOngoingClasses();   //_liveStreamingService.GetAllCourses();
+
+            if (result != null && result.Any())
+            {
+                return Ok(new { Status = 200, Message = "Success", Result = result });
+            }
+            else
+            {
+                return Ok(new { Status = 204, Message = "No classes found", Result = (object)null });
+            }
+
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Status = 500, Message = "Internal Server Error: " + ex.Message });
+
+
+        }
+    }
+
+
+
 
 }
 
