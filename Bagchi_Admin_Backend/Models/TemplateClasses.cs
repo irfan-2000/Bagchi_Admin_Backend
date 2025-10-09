@@ -289,5 +289,30 @@ namespace Bagchi_Admin_Backend.Models
     }
 
 
+    public class QuizDto
+    {
+        public int QuizId { get; set; } = 0; // for updates, 0 for new
+        public int CourseId { get; set; }
+        public List<string> BatchId { get; set; } = new(); // incoming as ["13","14"]
+        public TimeSpan Duration { get; set; }  // HH:mm:ss
+        public DateTime StartDate { get; set; } // "2025-09-10"
+        public TimeSpan StartTime { get; set; } // "09:00" or "09:00:00"
+        public DateTime EndDate { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public string Title { get; set; } = "";
+        public List<QuizQuestionDto> Questions { get; set; } = new();
+    }
+    public class QuizQuestionDto
+    {
+        public string Question_text { get; set; } = "";
+        public List<QuizOptionDto> Options { get; set; } = new();
+    }
+
+    public class QuizOptionDto
+    {
+        public string Text { get; set; } = "";
+        public bool IsCorrect { get; set; } = false;
+    }
+
 
 }

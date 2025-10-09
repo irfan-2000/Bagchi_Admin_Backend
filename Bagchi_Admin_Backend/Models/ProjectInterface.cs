@@ -21,11 +21,7 @@ namespace Bagchi_Admin_Backend.Models
 
     }
 
-    public interface IQuizService
-    {
-
-    }
-
+    
     public interface ICourseService
     {
         Task<List<Class_Dto>> GetAvailableClasses();
@@ -51,4 +47,15 @@ namespace Bagchi_Admin_Backend.Models
 
         Task<List<AllCourseDetails>> GetAllCourses();
     }
+
+
+    public interface IQuizService
+    {
+        DbResponse ValidateQuiz(QuizDto quiz);
+        Task<bool> CreateQuizAsync(QuizDto dto);
+    }
+
+
+
+
 }

@@ -22,6 +22,46 @@ namespace Bagchi_Admin_Backend.Controllers
 
 
 
+        [HttpPost("createQuiz")]
+        public async Task<IActionResult> Create([FromBody] QuizDto dto)
+        {
+            if (dto == null) 
+                return BadRequest("Payload is required.");
+
+            if (dto.BatchId == null || dto.BatchId.Count == 0)
+                return BadRequest("At least one batch must be selected.");
+
+            if (string.IsNullOrWhiteSpace(dto.Title)) 
+                return BadRequest("Title is required.");
+
+            var validation_result = _quizService. ValidateQuiz(dto);
+            if (validation_result.StatusCode != "200")
+                return BadRequest(validation_result);
+
+            try
+            {
+                var result = await _quizService.CreateQuizAsync(dto);
+                if(result)
+                {
+                    return Ok(new { statuscode = "200", message = "Details has been saved" });
+
+                }
+                else
+                {
+                    return Ok(new { statuscode = "500", message = "Error saving details" });
+
+                }
+            }
+            catch (Exception ex)
+            {
+                // log ex
+                return StatusCode(500, "An error occurred while creating the quiz.");
+            }
+        }
+
+
+
+
 
 
     }
