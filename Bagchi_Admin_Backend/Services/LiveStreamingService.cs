@@ -7,6 +7,7 @@ using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace Bagchi_Admin_Backend.Services
 {
@@ -183,7 +184,37 @@ namespace Bagchi_Admin_Backend.Services
                     DbHelper.AddParameter(cmd, "@zaktoken", request.zaktoken);
                      DbHelper.AddParameter(cmd, "@signature", request.Signature);
                     DbHelper.AddParameter(cmd, "teachername", request.teachername);
+
                     DbHelper.AddParameter(cmd, "@Action", "INSERT"); 
+
+                   if(!string.IsNullOrEmpty(request.specialClassType))
+                    {
+
+                        DbHelper.AddParameter(cmd, "@classtype", "Special");
+
+                        if(request.specialClassType == "specificStudents")
+                        {
+                            DbHelper.AddParameter(cmd, "@specialclasstype", "specificStudents");
+
+                            DbHelper.AddParameter(cmd, "@studentids", string.Join(",", request.studentIds));
+                        }
+                        else
+                        {
+                            DbHelper.AddParameter(cmd, "@specialclasstype", "fullBatch");
+
+
+
+                        }
+
+
+
+
+                    }
+                    else
+                    {
+                        DbHelper.AddParameter(cmd, "@classtype", "Regular");
+
+                    }
 
                     await _dbContext.Database.OpenConnectionAsync(); 
 
@@ -379,15 +410,114 @@ namespace Bagchi_Admin_Backend.Services
 
             return details;
         }
+        public async Task<int> UpdateMeetingStatus(long meetingId, int status)
+        {
+            try
+            {
+                await using var cmd = _dbContext.Database.GetDbConnection().CreateCommand();
+                cmd.CommandText = "UpdateMeetingStatus";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Clear();
+
+                // Ensure connection is open
+                if (cmd.Connection.State != ConnectionState.Open)
+                    await cmd.Connection.OpenAsync();
+
+                // Add parameters
+                DbHelper.AddParameter(cmd, "@status", status);
+                DbHelper.AddParameter(cmd, "@meetingId", meetingId); // long -> bigint in SQL
+
+                // Execute
+                var result = await cmd.ExecuteNonQueryAsync();
+                return result > 0 ? 1 : 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in UpdateMeetingStatus: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<int> insertwebhookdata(ZoomWebhookEvent webhookdata, string eventType)
+        {
+            var payload = webhookdata.Payload.Object;
+
+            try
+            {
+                await using var cmd = _dbContext.Database.GetDbConnection().CreateCommand();
+                cmd.CommandText = "inserwebhookdata";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Clear();
+
+                // Ensure connection is open
+                if (cmd.Connection.State != ConnectionState.Open)
+                    await cmd.Connection.OpenAsync();
+
+                // Add parameter
+                DbHelper.AddParameter(cmd, "@webhookdata", JsonSerializer.Serialize(payload));
+
+                DbHelper.AddParameter(cmd, "@eventType", eventType);
+                // Execute
+                var result = await cmd.ExecuteNonQueryAsync();
+                return result > 0 ? 1 : 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in InsertWebhookData: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<List<ClassHistoryDto>> GetClassHistoryAsync()
+        {
+            List<ClassHistoryDto> classHistoryList = new List<ClassHistoryDto>();
+
+            try
+            {
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+
+                    cmd.CommandText = "Usp_GetLiveClassHistory";
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    if (cmd.Connection.State != ConnectionState.Open)
+                        await cmd.Connection.OpenAsync();
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            ClassHistoryDto dto = new ClassHistoryDto();
 
 
+                              dto.LiveSessionId = reader["LiveSessionId"] != DBNull.Value ? Convert.ToInt64(reader["LiveSessionId"]) : 0;
+                            dto.Topic = reader["Topic"]?.ToString();
+                            dto.StartTime = reader["StartTime"] != DBNull.Value ? Convert.ToDateTime(reader["StartTime"]) : null;
+                            dto.EndTime = reader["EndTime"] != DBNull.Value ? Convert.ToDateTime(reader["EndTime"]) : null;
+                            dto.Duration = reader["Duration"]?.ToString();
+                            dto.Status = reader["Status"]?.ToString();
+                            dto.ClassType = reader["ClassType"]?.ToString();
+                            dto.SpecialClassType = reader["SpecialClassType"]?.ToString();
+                            dto.TeacherName = reader["TeacherName"]?.ToString();
+                            dto.BatchName = reader["BatchName"]?.ToString();
+                            dto.CourseName = reader["CourseName"]?.ToString();
+                             
 
+                            classHistoryList.Add(dto);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // log exception
+            }
+
+            return classHistoryList;
+        }
 
 
     }
-
-
-
 
 }
 

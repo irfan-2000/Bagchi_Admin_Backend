@@ -240,7 +240,7 @@ namespace Bagchi_Admin_Backend.Controllers
                 var overview = form["overview"].ToString();
                 var paymentType = form["paymentType"].ToString();
                 var status = int.Parse(form["status"]);
-
+                string teachername = form["teacher"].ToString();
 
                 var subjects = JsonSerializer.Deserialize<List<int>>(form["subjectId"]);
                 var highlights = JsonSerializer.Deserialize<List<string>>(form["highlights"]) ?? new List<string>();
@@ -266,30 +266,34 @@ namespace Bagchi_Admin_Backend.Controllers
                 string Old_courseImage = form["Old_courseImage"];
                 string CourseImageName = string.Empty;
 
-                var courseDto = new CoursePackageDto
-                {
-                    CourseName = courseName,
-                    CourseLevel = courseLevel,
-                    ClassId = classId,
-                    BoardId = boardId,
-                    SubjectId = subjects,
-                    Price = price,
-                    OldPrice = oldPrice,
-                    Duration = duration,
-                    ShortDescription = shortDescription,
-                    Overview = overview,
-                    Highlights = highlights,
-                    Requirements = requirements,
-                    Objectives = objectives,
-                    Batches = batches,
-                    PaymentType = paymentType,
-                    Installments = installments,
-                    Status = status,
-                    IsEditing = IsEditing,
-                    CourseId = Convert.ToInt32(CourseId)
 
 
-                };
+                var courseDto = new CoursePackageDto();
+
+                courseDto.CourseName = courseName;
+                courseDto.CourseLevel = courseLevel;
+                courseDto.ClassId = classId;
+                courseDto.BoardId = boardId;
+                courseDto.SubjectId = subjects;
+                courseDto.Price = price;
+                courseDto.OldPrice = oldPrice;
+                courseDto.Duration = duration;
+                courseDto.ShortDescription = shortDescription;
+                courseDto.Overview = overview;
+                courseDto.Highlights = highlights;
+                courseDto.Requirements = requirements;
+                courseDto.Objectives = objectives;
+                courseDto.Batches = batches;
+                courseDto.PaymentType = paymentType;
+                courseDto.Installments = installments;
+                courseDto.Status = status;
+                courseDto.IsEditing = IsEditing;
+
+                // Safe conversion for CourseId
+                courseDto.CourseId = string.IsNullOrWhiteSpace(CourseId) ? 0 : Convert.ToInt32(CourseId);
+
+                courseDto.Teacher = teachername;
+
                 var validationResult = _courseservice.ValidateCoursePackage(courseDto);
                 if (validationResult.StatusCode != 200)
                     return BadRequest(validationResult);

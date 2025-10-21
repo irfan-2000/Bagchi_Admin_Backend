@@ -9,4 +9,16 @@ namespace Bagchi_Admin_Backend.Models
 
 
     }
+public class ShayDbContext :DbContext
+    {
+        public ShayDbContext(DbContextOptions<ShayDbContext> options) : base(options) { }
+
+
+
+    }
+
+
+
+
+
 }

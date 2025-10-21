@@ -14,10 +14,13 @@ namespace Bagchi_Admin_Backend.Models
        // Task<List<>> GetAllCourses();
         Task<List<LiveSession>> GetOngoingClasses();
         Task<List<BatchDetails>> GetBatchesById(string CourseId);
-
         Task<bool> InsertLiveClass_start(LiveSessionRequest request, long meetingId, string startUrl, string joinUrl);
         string GenerateSdkSignature(string meetingNumber, int role);
         Task<MeetingDetails> GetMeetingDetailsById(long MeetingId);
+        Task<int> UpdateMeetingStatus(long meetingid, int status);
+        Task<int> insertwebhookdata(ZoomWebhookEvent webhookdata,string eventType);
+
+        Task<List<ClassHistoryDto>> GetClassHistoryAsync();
 
     }
 
@@ -53,9 +56,27 @@ namespace Bagchi_Admin_Backend.Models
     {
         DbResponse ValidateQuiz(QuizDto quiz);
         Task<bool> CreateQuizAsync(QuizDto dto);
+        Task<QuizDto> GetQuizDataById(string flag, int quizid = 0);
+
+          Task<List<QuizDto>> GetAllQuizzes();
+    }
+
+    public interface IStudentService
+    {
+        Task<List<StudentDto>> GetAllStudents();
+        Task<StudentDto> GetStudentsbyid(int studentid);
+        Task<int> UpdateStudentdetails(StudentDto dto);
+
+        //Task<DbResponse> AddUpdateStudent(StudentDto dto);
+        //Task<DbResponse> DeleteStudent(int studentId);
     }
 
 
-
-
+    public interface IShayariService
+    {
+        Task<List<ShayariDto>> GetAllShayaris();
+        Task<ShayariDto> GetShayariById(int shayariId);
+        Task<List<ShayariDto>> GetShayarisByCategory(int categoryId);
+        Task<int> InsertUser(UserDto user);
+    }
 }

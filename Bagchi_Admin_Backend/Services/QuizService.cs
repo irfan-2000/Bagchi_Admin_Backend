@@ -24,8 +24,62 @@ namespace Bagchi_Admin_Backend.Services
             if (quiz.BatchId == null || quiz.BatchId.Count == 0)
                 return new DbResponse { StatusCode = "400", Message = "Please select the batch." };
 
+            if (string.IsNullOrWhiteSpace(quiz.Title))
+                return new DbResponse { StatusCode = "400", Message = "Please enter the quiz title." };
+
+            if (quiz.StartDate == DateTime.MinValue )
+                return new DbResponse { StatusCode = "400", Message = "Please select the quiz start date." };
+
+            if (quiz.EndDate == DateTime.MinValue)
+                return new DbResponse { StatusCode = "400", Message = "Please select the quiz end date." };
+
+
+            if (quiz.Duration == null || quiz.Duration == TimeSpan.Zero)
+                return new DbResponse { StatusCode = "400", Message = "Please enter the quiz duration." };
+
+            if (quiz.StartTime == TimeSpan.Zero)
+                return new DbResponse { StatusCode = "400", Message = "Please select the quiz start time." };
+
+            if (quiz.EndTime == TimeSpan.Zero)
+                return new DbResponse { StatusCode = "400", Message = "Please select the quiz end time." };
+
+            if (quiz.EndDate < quiz.StartDate)
+                return new DbResponse { StatusCode = "400", Message = "Quiz end date must be after start date." };
+
+
+
+            if (quiz.Status <= 0) // Assuming Status: 1=Active/Upcoming, 2=Inactive, 3=Completed
+                return new DbResponse { StatusCode = "400", Message = "Please select the quiz status." };
+
+
             if (quiz.Questions == null || quiz.Questions.Count == 0)
                 return new DbResponse { StatusCode = "400", Message = "Please add at least one question." };
+
+            if (quiz.TotalQuestions <= 0)
+                return new DbResponse { StatusCode = "400", Message = "Please enter total number of questions." };
+
+            if (quiz.MarksPerQuestion <= 0)
+                return new DbResponse { StatusCode = "400", Message = "Please enter marks per question." };
+
+            if (quiz.AllowNegative != true && quiz.AllowNegative != false)
+                return new DbResponse { StatusCode = "400", Message = "AllowNegative can't be undefined." };
+
+            if (quiz.AllowNegative && quiz.Negativemarks<= 0)
+                return new DbResponse { StatusCode = "400", Message = "Negative marks are required else uncheck the allow negative marking." };
+
+            if (quiz.ShuffleQuestions != true && quiz.ShuffleQuestions != false)
+                return new DbResponse { StatusCode = "400", Message = "ShuffleQuestions can't be undefined." };
+
+            if (quiz.TotalMarks <= 0)
+                return new DbResponse { StatusCode = "400", Message = "TotalMarks can't be undefined or 0." };
+
+            if (quiz.Subjects == null)
+                return new DbResponse { StatusCode = "400", Message = "Subjects is required." };
+
+            if (quiz.AllowSkip != true && quiz.AllowSkip != false)
+                return new DbResponse { StatusCode = "400", Message = "AllowSkip can't be undefined." };
+
+
 
             for (int i = 0; i < quiz.Questions.Count; i++)
             {
@@ -70,11 +124,26 @@ namespace Bagchi_Admin_Backend.Services
                     DbHelper.AddParameter(cmd, "@QuizId", dto.QuizId);
                     DbHelper.AddParameter(cmd, "@CourseId",dto.CourseId);
                     DbHelper.AddParameter(cmd, "@Title", dto.Title);
-                    DbHelper.AddParameter(cmd, "@StartDateTime", dto.StartTime.ToString(@"hh\:mm\:ss"));
-                    DbHelper.AddParameter(cmd, "@EndDateTime", dto.EndTime.ToString(@"hh\:mm\:ss"));
+                    DbHelper.AddParameter(cmd, "@Status", dto.Status);
+
+
+                    DbHelper.AddParameter(cmd, "@TotalQuestions", Convert.ToInt32(dto.TotalQuestions));
+                    DbHelper.AddParameter(cmd, "@MarksPerQuestion", Convert.ToDecimal(dto.MarksPerQuestion));
+                    DbHelper.AddParameter(cmd, "@AllowNegative", dto.AllowNegative ? 1 : 0);
+                    DbHelper.AddParameter(cmd, "@NegativeMarking", Convert.ToDecimal(dto.Negativemarks));
+                    DbHelper.AddParameter(cmd, "@ShuffleQuestions", dto.ShuffleQuestions ? 1 : 0);
+                    DbHelper.AddParameter(cmd, "@TotalMarks", Convert.ToDecimal(dto.TotalMarks));
+                    DbHelper.AddParameter(cmd, "@Subjects", dto.Subjects ?? string.Empty);
+                    DbHelper.AddParameter(cmd, "@AllowSkip", dto.AllowSkip ? 1 : 0);
+
+
+                    DbHelper.AddParameter(cmd, "@StartDateTime", DateTime.ParseExact(dto.StartDate.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture));
+                    DbHelper.AddParameter(cmd, "@EndDateTime", DateTime.ParseExact(dto.EndDate.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture));
                     DbHelper.AddParameter(cmd, "@Duration", dto.Duration.ToString(@"hh\:mm\:ss"));
                     DbHelper.AddParameter(cmd, "@BatchIdsCsv", string.Join(",", dto.BatchId));
                     DbHelper.AddParameter(cmd, "@QuestionsXml", questionsXml);
+                    DbHelper.AddParameter(cmd, "@Starttime", dto.StartTime.ToString(@"hh\:mm\:ss"));
+                    DbHelper.AddParameter(cmd, "@Endtime", dto.EndTime.ToString(@"hh\:mm\:ss"));
 
                    int result = await cmd.ExecuteNonQueryAsync();
 
@@ -90,20 +159,6 @@ namespace Bagchi_Admin_Backend.Services
                 throw new Exception("Error creating quiz: " + ex.Message);
             }
             return false;
-        }
-
-        private DateTime? CombineDateAndTime(string dateStr, string timeStr)
-        {
-            if (string.IsNullOrWhiteSpace(dateStr) || string.IsNullOrWhiteSpace(timeStr)) return null;
-            // dateStr expected "yyyy-MM-dd"
-            // timeStr expected "HH:mm" or "HH:mm:ss"
-            if (!DateTime.TryParseExact(dateStr, new[] { "yyyy-MM-dd", "yyyy-M-d" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out var datePart))
-                return null;
-
-            if (!TimeSpan.TryParse(timeStr, out var timePart))
-                return null;
-
-            return datePart.Date.Add(timePart);
         }
 
         private string BuildQuestionsXml(List<QuizQuestionDto> questions)
@@ -141,6 +196,142 @@ namespace Bagchi_Admin_Backend.Services
             return doc.ToString(SaveOptions.DisableFormatting);
         }
 
+
+        public async Task<QuizDto> GetQuizDataById(string flag, int quizid = 0)
+        {
+            QuizDto quizMasterData = new QuizDto();
+            quizMasterData.Questions = new List<QuizQuestionDto>();
+
+            try
+            {
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_getquizdata";
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Parameters
+                    DbHelper.AddParameter(cmd, "@Flag", flag);
+
+                    if (quizid > 0)
+                        DbHelper.AddParameter(cmd, "@quizid", quizid);
+
+                    await _dbContext.Database.OpenConnectionAsync();
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                         if (await reader.ReadAsync())
+                        {
+                            quizMasterData.QuizId = Convert.IsDBNull(reader["QuizId"]) ? 0 : Convert.ToInt32(reader["QuizId"]);
+                            quizMasterData.CourseId = Convert.IsDBNull(reader["CourseId"]) ? 0 : Convert.ToInt32(reader["CourseId"]);
+                            quizMasterData.Title = Convert.IsDBNull(reader["Title"]) ? "" : reader["Title"].ToString();
+                            quizMasterData.StartDate = Convert.IsDBNull(reader["StartDateTime"]) ? DateTime.MinValue : Convert.ToDateTime(reader["StartDateTime"]);
+                            quizMasterData.EndDate = Convert.IsDBNull(reader["EndDateTime"]) ?  DateTime.MinValue :Convert.ToDateTime(reader["EndDateTime"]);
+                            quizMasterData.Duration = reader["Duration"] is DBNull ? TimeSpan.MinValue : (TimeSpan)reader["Duration"];
+                            quizMasterData.StartTime = reader["Duration"] is DBNull ? TimeSpan.MinValue : (TimeSpan)reader["StartTime"];                            
+                            quizMasterData.EndTime = Convert.IsDBNull(reader["EndTime"]) ? TimeSpan.MinValue : (TimeSpan)reader["EndTime"];
+                            quizMasterData.Status = Convert.IsDBNull(reader["Status"]) ? 0 : Convert.ToInt32(reader["Status"]);
+                            var batchIdsStr = Convert.IsDBNull(reader["BatchIds"]) ? "" : reader["BatchIds"].ToString();
+                            quizMasterData.BatchId = string.IsNullOrWhiteSpace(batchIdsStr)
+                                ? new List<string>()
+                                : batchIdsStr.Split(',').Select(b => b.Trim()).ToList();
+                        }
+
+                        // Move to 2nd Result Set: Questions
+                        if (await reader.NextResultAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var question = new QuizQuestionDto();
+
+
+                                question.QuestionId = Convert.IsDBNull(reader["QuestionId"]) ? 0 : Convert.ToInt32(reader["QuestionId"]);
+                                question.Question_text = Convert.IsDBNull(reader["QuestionText"]) ? "" : reader["QuestionText"].ToString();
+                                question.Options = new List<QuizOptionDto>();
+                                
+                                quizMasterData.Questions.Add(question);
+                            }
+                        }
+                         
+                        if (await reader.NextResultAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var option = new QuizOptionDto();
+                                option.QuestionId = Convert.IsDBNull(reader["QuestionId"]) ? 0 : Convert.ToInt32(reader["QuestionId"]);
+                                option.Text = Convert.IsDBNull(reader["OptionText"]) ? "" : reader["OptionText"].ToString();
+                                option.IsCorrect = Convert.IsDBNull(reader["IsCorrect"]) ? false : Convert.ToBoolean(reader["IsCorrect"]);
+
+                                quizMasterData.Questions.FirstOrDefault(q => q.QuestionId == option.QuestionId)?.Options?.Add(option);
+
+
+                                // var question = quizMasterData.Questions.FirstOrDefault(q => q.QuestionId == option.QuestionId).Options.Add(option);
+                                //if (question != null)
+                                //{
+                                //    question.Options.Add(option);
+                                //}
+                            }
+                        }
+
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            { 
+                
+            }
+            finally
+            {
+                await _dbContext.Database.CloseConnectionAsync();
+            }
+
+            return quizMasterData;
+        }
+
+
+        public async Task<List<QuizDto>> GetAllQuizzes()
+        {
+            List<QuizDto> quizzes = new List<QuizDto>();
+
+            try
+            {
+
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_getquizdata";
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Parameters
+                    DbHelper.AddParameter(cmd, "@Flag", "All");
+                     
+                    await _dbContext.Database.OpenConnectionAsync();
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            var quiz = new QuizDto();
+                           quiz.QuizId = Convert.IsDBNull(reader["QuizId"]) ? 0 : Convert.ToInt32(reader["QuizId"]);
+                           quiz.CourseId = Convert.IsDBNull(reader["CourseId"]) ? 0 : Convert.ToInt32(reader["CourseId"]);
+                           quiz.Title = Convert.IsDBNull(reader["Title"]) ? "" : reader["Title"].ToString();
+                           quiz.StartDate = Convert.IsDBNull(reader["StartDateTime"]) ? DateTime.MinValue : Convert.ToDateTime(reader["StartDateTime"]);
+                           quiz.EndDate = Convert.IsDBNull(reader["EndDateTime"]) ? DateTime.MinValue : Convert.ToDateTime(reader["EndDateTime"]);
+                           quiz.Duration = reader["Duration"] is DBNull ? TimeSpan.MinValue : (TimeSpan)reader["Duration"];
+                           quiz.StartTime = reader["Duration"] is DBNull ? TimeSpan.MinValue : (TimeSpan)reader["StartTime"];
+                           quiz.EndTime = Convert.IsDBNull(reader["EndTime"]) ? TimeSpan.MinValue : (TimeSpan)reader["EndTime"];
+                            quiz.Status = Convert.IsDBNull(reader["Status"]) ? 0 : Convert.ToInt32(reader["Status"]);
+
+                            quizzes.Add(quiz);
+                        }
+                    }
+                }
+            }catch(Exception ex)
+            {
+
+            }
+
+            return quizzes;
+        }
 
     }
 }

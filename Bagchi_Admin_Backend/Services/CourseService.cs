@@ -560,7 +560,7 @@ namespace Bagchi_Admin_Backend.Services
             // Payment & Installments
             if (string.IsNullOrWhiteSpace(course.PaymentType))
                 errors.Add("Payment Type is required.");
-            else if (course.PaymentType.ToLower() == "installments")
+            else if (course.PaymentType.ToLower() == "installments" || course.PaymentType.ToLower() == "both")
             {
                 if (course.Installments == null || course.Installments.Count == 0)
                     errors.Add("At least one installment is required.");
@@ -672,6 +672,7 @@ namespace Bagchi_Admin_Backend.Services
                 DbHelper.AddParameter(cmd, "@Price", course.Price);
                 DbHelper.AddParameter(cmd, "@OldPrice", course.OldPrice);
                 DbHelper.AddParameter(cmd,"@PaymentType", course.PaymentType);
+                DbHelper.AddParameter(cmd, "@teachername", course.Teacher);
 
                 DbHelper.AddParameter(cmd, "@Status", course.Status);
 
@@ -771,7 +772,7 @@ namespace Bagchi_Admin_Backend.Services
                             course.OldPrice = reader.GetDecimal(reader.GetOrdinal("OldPrice"));
                             course.PaymentType = reader.IsDBNull(reader.GetOrdinal("PaymentType"))? null: reader.GetString(reader.GetOrdinal("PaymentType"));
                             course.Status = reader.GetInt32(reader.GetOrdinal("Status"));
-
+                            course.Teacher = reader.IsDBNull(reader.GetOrdinal("Teacher_name")) ? null : reader.GetString(reader.GetOrdinal("Teacher_name"));  
                             // Deserialize Objectives and Requirements stored as JSON strings
                             course.Objectives = reader.IsDBNull(reader.GetOrdinal("Objectives"))? new List<string>(): JsonConvert.DeserializeObject<List<string>>(reader.GetString(reader.GetOrdinal("Objectives")));
                             course.Requirements = reader.IsDBNull(reader.GetOrdinal("Requirements"))   ? new List<string>() : JsonConvert.DeserializeObject<List<string>>(reader.GetString(reader.GetOrdinal("Requirements")));

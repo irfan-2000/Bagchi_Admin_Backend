@@ -1,5 +1,6 @@
 using Bagchi_Admin_Backend.Models;
 using Bagchi_Admin_Backend.Services;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
  
@@ -13,8 +14,16 @@ builder.Services.AddScoped<IQuizService, QuizService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
  
 
+builder.Services.AddScoped<IStudentService, StudentService>();
+ 
+builder.Services.AddScoped<IShayariService, shayservice>();
+ 
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDbContext<ShayDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("ShayConnection")));
 
 // Add services to the container.
 builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
@@ -23,7 +32,20 @@ builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
            .AllowAnyMethod()
            .AllowAnyHeader();
 }));
-    
+ 
+int port = builder.Configuration.GetValue<int>("KestrelSettings:Port");
+
+
+//builder.WebHost.ConfigureKestrel(serverOptions =>
+//{
+//    serverOptions.ListenAnyIP(port, listenOptions =>
+//    {
+//        listenOptions.UseHttps("/etc/ssl/private/bagadmin_api_cert.pfx", "myPfxPassword"); // empty password
+//    });
+//});
+
+
+
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -36,10 +58,12 @@ builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".avif"] = "image/avif"; // Add AVIF support
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();

@@ -3,6 +3,7 @@ using Bagchi_Admin_Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http;
@@ -196,11 +197,7 @@ public class ZoomController : ControllerBase
             return StatusCode(500, new { error = ex.Message });
         }
     }
-
-
-
-
-
+     
 
 
     [HttpPost("CreateLiveClass")]
@@ -307,6 +304,8 @@ public class ZoomController : ControllerBase
             payloadobj.zaktoken = zakToken;
             payloadobj.Signature = GenerateSignature(meetingId,1);
             payloadobj.teachername = liveSessionRequest.teachername;
+            payloadobj.specialClassType = liveSessionRequest.specialClassType;
+            payloadobj.studentIds = liveSessionRequest.studentIds;
             //get signature 
 
             var savemeetingsdetails =   await _liveStreamingService.InsertLiveClass_start(payloadobj, meetingId, startUrl, joinUrl);
@@ -432,35 +431,7 @@ public class ZoomController : ControllerBase
     }
 
 
-    public class ZoomWebhookEvent
-    {
-        public string Event { get; set; }
-        public Payload Payload { get; set; }
-        public long EventTs { get; set; }
-    }
-
-    public class Payload
-    {
-        public string AccountId { get; set; }
-        public ZoomMeetingObject Object { get; set; }
-    }
-
-    public class ZoomMeetingObject
-    {
-        public long Id { get; set; }
-        public string HostId { get; set; }
-        public string Topic { get; set; }
-        public int Type { get; set; }
-        public int Duration { get; set; }
-        public string StartTime { get; set; }
-        public string Timezone { get; set; }
-        public string Uuid { get; set; }
-
-        public string UserId { get; set; } = string.Empty;
-
-        public string UserName { get; set; } = string.Empty;
-    }
-
+    
 
     [HttpPost("meetingstatus_webhook")]
      public async Task<IActionResult> MeetingStatusWebhook([FromBody] dynamic payload)
@@ -479,21 +450,22 @@ public class ZoomController : ControllerBase
             switch (eventType)
             {
                 case "meeting.started":
+                   await  _liveStreamingService.insertwebhookdata(zoomEvent,eventType);
                     Console.WriteLine($"Meeting Started: {meeting.Topic}, Host: {meeting.HostId}");
-                    // Save start time to DB
-                    break;
+                     break;
 
                 case "meeting.ended":
+                    await _liveStreamingService.UpdateMeetingStatus(meeting.Id, 3);
+                   await  _liveStreamingService.insertwebhookdata(zoomEvent,eventType);
                     Console.WriteLine($"Meeting Ended for All: {meeting.Topic}, Host: {meeting.HostId}");
-                    // Save end time to DB
-                        break;
+                         break;
 
                 case "meeting.participant_left":
+                    await _liveStreamingService.insertwebhookdata(zoomEvent, eventType);
                     string userId = meeting.UserId;
                     if (userId == meeting.HostId)
                     {
                         Console.WriteLine($"Host Left Meeting: {meeting.Topic}, Host: {meeting.HostId}");
-                        // Save host-left info to DB, meeting still active
                     }
                     else
                     {
@@ -688,7 +660,74 @@ public class ZoomController : ControllerBase
 
 
 
+    [HttpGet("recordings")]
+    public async Task<IActionResult> GetRecording(string meetingId,string accesstoken)
+    {
+        // Replace with your OAuth access token
+        var accessToken = accesstoken;
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var url = $"https://api.zoom.us/v2/meetings/{meetingId}/recordings";
+
+        var response = await client.GetAsync(url);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            return BadRequest(new { message = "Failed to fetch Zoom recording", error });
+        }
+
+        var content = await response.Content.ReadAsStringAsync();
+        var data = JObject.Parse(content); // JSON response
+        return Ok(data);
+    }
+
+    //[HttpPost("get-access-token")]
+    //public async Task<IActionResult> GetAccessToken([FromBody] ZoomAuthRequest request)
+    //{
+    //    if (string.IsNullOrEmpty(request.Code))
+    //        return BadRequest("Authorization code is required.");
+
+    //    string clientId = _config["Zoom:ClientId"];
+    //    string clientSecret = _config["Zoom:ClientSecret"];
+    //    string redirectUri = _config["Zoom:RedirectUri"];
+
+    //    var httpClient = _httpClientFactory.CreateClient();
+    //    var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+    //    httpClient.DefaultRequestHeaders.Authorization =
+    //        new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
+
+    //    var tokenResponse = await httpClient.PostAsync(
+    //        $"https://zoom.us/oauth/token?grant_type=authorization_code&code={request.Code}&redirect_uri={redirectUri}",
+    //        null
+    //    );
+
+    //    var content = await tokenResponse.Content.ReadAsStringAsync();
+
+    //    if (!tokenResponse.IsSuccessStatusCode)
+    //        return StatusCode((int)tokenResponse.StatusCode, content);
+
+    //    return Ok(content);
+    //}
+
+    [HttpGet("GetClassHistory")]
+
+    public async Task<IActionResult> GetClassHistory()
+    {
+        try
+        {
+            var result = await  _liveStreamingService.GetClassHistoryAsync();
+            return Ok(result);
+
+        }catch(Exception ex)
+        {
+            return Ok(new { statuscode = "500", message = "Error getting details" });
+
+        }
+    }
 
 }
+
 
 

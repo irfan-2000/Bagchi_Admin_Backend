@@ -43,7 +43,19 @@ namespace Bagchi_Admin_Backend.Controllers
                 var result = await _quizService.CreateQuizAsync(dto);
                 if(result)
                 {
-                    return Ok(new { statuscode = "200", message = "Details has been saved" });
+                    if(dto.QuizId > 0)
+                    {
+                        return Ok(new { statuscode = "200", message = "Quiz Updated!!" });
+
+                        
+                    }
+                    else
+                    {
+                        return Ok(new { statuscode = "200", message = "Details has been saved/New Record Added" });
+
+
+                    }
+
 
                 }
                 else
@@ -59,6 +71,39 @@ namespace Bagchi_Admin_Backend.Controllers
             }
         }
 
+
+
+        [HttpGet("Getquizdata")]
+        public async Task<IActionResult> Getquizdatabyid(string flag ,int quizid= 0)
+        {
+            try
+            {
+                var result = await _quizService.GetQuizDataById(flag , quizid);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while getting the quiz data");
+
+            }
+
+        }
+
+        [HttpGet("Getallquizzes")]
+        public async Task<IActionResult> Getallquizzes( )
+        {
+            try
+            {
+                var result = await _quizService.GetAllQuizzes();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while getting the quiz data");
+
+            }
+
+        }
 
 
 

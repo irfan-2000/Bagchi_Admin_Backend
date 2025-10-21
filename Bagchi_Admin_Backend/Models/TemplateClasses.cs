@@ -39,7 +39,12 @@ namespace Bagchi_Admin_Backend.Models
 
         public string? Signature { get; set; }
     
-            public string? zoomcode { get; set; }
+         public string? zoomcode { get; set; }
+
+        public List<int>  studentIds { get; set; }
+        
+        public string specialClassType { get; set; }
+         
     }
 
 
@@ -248,6 +253,8 @@ namespace Bagchi_Admin_Backend.Models
         public int CourseId { get; set; } = 0;
 
         public string ImagewithPath { get; set; } = string.Empty;
+
+        public string Teacher { get; set; } = string.Empty;
     }
 
 
@@ -301,18 +308,116 @@ namespace Bagchi_Admin_Backend.Models
         public TimeSpan EndTime { get; set; }
         public string Title { get; set; } = "";
         public List<QuizQuestionDto> Questions { get; set; } = new();
+
+        public int Status { get; set; }
+
+        public int TotalQuestions { get; set; }
+
+        public double MarksPerQuestion { get; set; }
+
+        public bool AllowNegative { get; set; }
+
+        public bool ShuffleQuestions { get; set; }
+
+        public double TotalMarks { get; set; }
+
+        public string Subjects { get; set; }
+
+        public bool AllowSkip { get; set; }
+
+        public double Negativemarks { get; set; }
+
+
     }
     public class QuizQuestionDto
     {
+        public int QuestionId { get; set; } = 0;
         public string Question_text { get; set; } = "";
         public List<QuizOptionDto> Options { get; set; } = new();
     }
 
     public class QuizOptionDto
     {
+        public int QuestionId { get; set; } = 0;
         public string Text { get; set; } = "";
         public bool IsCorrect { get; set; } = false;
     }
 
+
+    public class StudentDto
+    {
+        public int StudentId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public DateTime DateOfBirth { get; set; }
+        public string Gender { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string? ParentName { get; set; }
+        public string? ParentMobile { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? Pincode { get; set; }
+        public int? InstitutionId { get; set; }
+        public string? InstitutionName { get; set; }
+        public int BoardId { get; set; }
+        public int ClassId { get; set; }
+        public int BatchId { get; set; }
+        public int Status { get; set; } // 1 = Active, 0 = Inactive
+        public string Password { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? ImageName { get; set; }
+        public int? SubjectId { get; set; }
+        public int? IsActive { get; set; } //login purpose dont show in admin 
+        public string? Student_Cast { get; set; }
+        public string? ClassName { get; set; } // If joined with Classes table
+        public string? SubjectName { get; set; } // If joined with Subjects table
+        public string? ImageUrl {get;set;}
+
+    }
+
+    public class ZoomWebhookEvent
+    {
+        public string Event { get; set; }
+        public Payload Payload { get; set; }
+        public long EventTs { get; set; }
+    }
+
+    public class Payload
+    {
+        public string AccountId { get; set; }
+        public ZoomMeetingObject Object { get; set; }
+    }
+
+    public class ZoomMeetingObject
+    {
+        public long Id { get; set; }
+        public string HostId { get; set; }
+        public string Topic { get; set; }
+        public int Type { get; set; }
+        public int Duration { get; set; }
+        public string StartTime { get; set; }
+        public string Timezone { get; set; }
+        public string Uuid { get; set; }
+
+        public string UserId { get; set; } = string.Empty;
+
+        public string UserName { get; set; } = string.Empty;
+    }
+    public class ClassHistoryDto
+    {
+        public long LiveSessionId { get; set; }
+        public string Topic { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string Duration { get; set; }
+        public string Status { get; set; }
+        public string ClassType { get; set; }
+        public string SpecialClassType { get; set; }
+        public string TeacherName { get; set; }
+        public string BatchName { get; set; }
+        public string CourseName { get; set; }
+    }
 
 }
