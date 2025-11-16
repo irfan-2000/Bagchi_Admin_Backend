@@ -7,15 +7,8 @@ namespace Bagchi_Admin_Backend.Models
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
 
-
     }
-public class ShayDbContext :DbContext
-    {
-        public ShayDbContext(DbContextOptions<ShayDbContext> options) : base(options) { }
-
-
-
-    }
+ 
 
 
 

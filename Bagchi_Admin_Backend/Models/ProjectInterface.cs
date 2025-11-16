@@ -1,4 +1,5 @@
-﻿using static Bagchi_Admin_Backend.Services.CourseService;
+﻿using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
+using static Bagchi_Admin_Backend.Services.CourseService;
 
 namespace Bagchi_Admin_Backend.Models
 {
@@ -55,10 +56,12 @@ namespace Bagchi_Admin_Backend.Models
     public interface IQuizService
     {
         DbResponse ValidateQuiz(QuizDto quiz);
-        Task<bool> CreateQuizAsync(QuizDto dto);
+        Task<bool> CreateQuizAsync(QuizDto dto, List<Question> question);
         Task<QuizDto> GetQuizDataById(string flag, int quizid = 0);
 
           Task<List<QuizDto>> GetAllQuizzes();
+
+        DbResponse ValidateUploadedQuestions(List<Question> questions);
     }
 
     public interface IStudentService
@@ -71,12 +74,5 @@ namespace Bagchi_Admin_Backend.Models
         //Task<DbResponse> DeleteStudent(int studentId);
     }
 
-
-    public interface IShayariService
-    {
-        Task<List<ShayariDto>> GetAllShayaris();
-        Task<ShayariDto> GetShayariById(int shayariId);
-        Task<List<ShayariDto>> GetShayarisByCategory(int categoryId);
-        Task<int> InsertUser(UserDto user);
-    }
+ 
 }

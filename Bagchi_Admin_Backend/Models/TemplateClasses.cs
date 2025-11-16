@@ -332,8 +332,24 @@ namespace Bagchi_Admin_Backend.Models
     public class QuizQuestionDto
     {
         public int QuestionId { get; set; } = 0;
-        public string Question_text { get; set; } = "";
+        public string QuestionText { get; set; } = "";
+
+        public string IsNumerical { get; set; } = string.Empty;
+
+        public string PositiveMarks { get; set; } = string.Empty;
+
+        public string NegativeMarks { get; set; } = string.Empty;
+        public List<string> ImagePaths { get; set; }
+
+        public string NumericalAnswer { get; set; } = string.Empty;
         public List<QuizOptionDto> Options { get; set; } = new();
+
+        public string OptionA { get; set; }
+        public string OptionB { get; set; }
+        public string OptionC { get; set; }
+        public string OptionD { get; set; }
+        public string CorrectAnswer { get; set; }
+
     }
 
     public class QuizOptionDto
@@ -418,6 +434,32 @@ namespace Bagchi_Admin_Backend.Models
         public string TeacherName { get; set; }
         public string BatchName { get; set; }
         public string CourseName { get; set; }
+    }
+
+
+    public class Question
+    {
+        public int QuestionId { get; set; }
+        public string QuestionText { get; set; }
+        public List<string> ImagePaths { get; set; } = new List<string>();
+        public string OptionA { get; set; }
+        public string OptionB { get; set; }
+        public string OptionC { get; set; }
+        public string OptionD { get; set; }
+        public string CorrectAnswer { get; set; }
+
+        public string IsNumerical { get; set; }
+        public string NumericalAnswer { get; set; } // NA or number
+
+        public double PositiveMarks { get; set; }
+        public double NegativeMarks { get; set; }
+    }
+
+
+    public class QuestionUploadResult
+    {
+        public List<Question> Questions { get; set; } = new();
+        public string Message { get; set; }
     }
 
 }
