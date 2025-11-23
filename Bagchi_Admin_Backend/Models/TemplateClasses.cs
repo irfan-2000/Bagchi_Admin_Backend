@@ -204,6 +204,7 @@ namespace Bagchi_Admin_Backend.Models
 
     public class Batch
     {
+        public int batchId { get; set; }
         public string batchName { get; set; }
         public int batch_classId { get; set; }
         public int batch_subjectId { get; set; }
@@ -213,8 +214,7 @@ namespace Bagchi_Admin_Backend.Models
         public TimeSpan startTime { get; set; }
         public TimeSpan endTime { get; set; }
 
-        public int btachId { get; set; }
-    }
+     }
 
     public class Installment
     {
@@ -461,5 +461,29 @@ namespace Bagchi_Admin_Backend.Models
         public List<Question> Questions { get; set; } = new();
         public string Message { get; set; }
     }
+
+
+    public class CourseContentDto
+    {
+        public List<CourseContent> Modules { get; set; }
+    }
+
+
+    public class CourseContent
+    {
+        public string ModuleNo { get; set; }
+        public string ModuleName { get; set; }
+        public string Topics { get; set; }
+        public string Lessons { get; set; }
+        public string Hours { get; set; }
+        public string Includes { get; set; }
+
+        public string Outcomes { get; set; }
+
+        public bool open { get; set; } = false;
+
+        
+    }
+
 
 }

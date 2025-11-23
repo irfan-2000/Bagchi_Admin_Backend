@@ -530,6 +530,11 @@ namespace Bagchi_Admin_Backend.Services
             if (course.Objectives == null || course.Objectives.Count == 0)
                 errors.Add("At least one valid objective is required.");
 
+            if (course.Status != 0 && course.Status != 1)
+                errors.Add("Status must be 0 (Inactive) or 1 (Active).");
+
+
+
             // Batches
             if (course.Batches == null || course.Batches.Count == 0)
                 errors.Add("At least one batch is required.");
@@ -575,9 +580,7 @@ namespace Bagchi_Admin_Backend.Services
                 }
             }
 
-            if (course.Status != 0 && course.Status != 1)
-                errors.Add("Status must be 0 (Inactive) or 1 (Active).");
-
+            
             return new ValidationResultDto
             {
                 StatusCode = errors.Count == 0 ? 200 : 400,
@@ -586,7 +589,7 @@ namespace Bagchi_Admin_Backend.Services
         }
  
 
-        public async Task<DbResponse> AddUpdateCoursePackagewithDetails(CoursePackageDto course)
+        public async Task<DbResponse> AddUpdateCoursePackagewithDetails(CoursePackageDto course,List<CourseContent> coursecontent)
         {
             DbResponse data = new DbResponse();
 
@@ -594,11 +597,27 @@ namespace Bagchi_Admin_Backend.Services
             try
             {
 
-           
-            // ---------------------------
-            // 1. Construct CourseDescription object for DB storage
-            // ---------------------------
-            var courseDescription = new
+
+                var Xml_Coursecontent =
+              new XElement("CourseContents",
+                  from cont in coursecontent ?? Enumerable.Empty<CourseContent>()
+                  select new XElement("Content",
+                      new XElement("ModuleNo", cont.ModuleNo),
+                      new XElement("ModuleName", cont.ModuleName),
+                      new XElement("Topics", cont.Topics),
+                      new XElement("Lessons", cont.Lessons),
+                      new XElement("Hours", cont.Hours),
+                      new XElement("Includes", cont.Includes),
+                      new XElement("Outcomes", cont.Outcomes)
+                  )
+              );
+
+
+
+                // ---------------------------
+                // 1. Construct CourseDescription object for DB storage
+                // ---------------------------
+                var courseDescription = new
             {
                 ShortDescription = course.ShortDescription,
                 Overview = course.Overview,
@@ -673,37 +692,28 @@ namespace Bagchi_Admin_Backend.Services
                 DbHelper.AddParameter(cmd, "@OldPrice", course.OldPrice);
                 DbHelper.AddParameter(cmd,"@PaymentType", course.PaymentType);
                 DbHelper.AddParameter(cmd, "@teachername", course.Teacher);
-
                 DbHelper.AddParameter(cmd, "@Status", course.Status);
-
-
 
 
                 DbHelper.AddParameter(cmd, "@CourseFullDescription", courseDescriptionJson);
 
 
-                    //string requirementsJson = System.Text.Json.JsonSerializer.Serialize(reqList);
-                    DbHelper.AddParameter(cmd, "@Requirements", JsonConvert.SerializeObject(course.Requirements));
+                //string requirementsJson = System.Text.Json.JsonSerializer.Serialize(reqList);
+                DbHelper.AddParameter(cmd, "@Requirements", JsonConvert.SerializeObject(course.Requirements));
 
 
-                    //var objectiveslist = course.Objectives?.Select(o => o.text).ToList() ?? new List<string>();
-                    string objectivesjson = System.Text.Json.JsonSerializer.Serialize(course.Objectives);
+                //var objectiveslist = course.Objectives?.Select(o => o.text).ToList() ?? new List<string>();
+                string objectivesjson = System.Text.Json.JsonSerializer.Serialize(course.Objectives);
 
-                    DbHelper.AddParameter(cmd, "@Objectives", objectivesjson);
+                DbHelper.AddParameter(cmd, "@Objectives", objectivesjson);                    
 
-
-
-
-
-
-
-
-                    DbHelper.AddParameter(cmd, "@Installments", installmentsXmlString); 
+                DbHelper.AddParameter(cmd, "@Installments", installmentsXmlString); 
                 
                 DbHelper.AddParameter(cmd, "@Subjects", subjectsJson); 
                  
                 DbHelper.AddParameter(cmd, "@Batches", batchesXmlString);
 
+                DbHelper.AddParameter(cmd, "@CourseContentXml", Xml_Coursecontent.ToString()); 
 
                 await _dbContext.Database.OpenConnectionAsync();
                 using (var reader = await cmd.ExecuteReaderAsync())
@@ -717,9 +727,7 @@ namespace Bagchi_Admin_Backend.Services
                 }
 
                 return data;
-
-
-
+                     
             }
 
             }
@@ -734,9 +742,13 @@ namespace Bagchi_Admin_Backend.Services
         }
 
  
-    public async Task<Tuple<CoursePackageDto,CourseDetailsDto>> GetCoursePackageDetails(int courseId )
+    public async Task<Tuple<CoursePackageDto,CourseDetailsDto,List<CourseContent>>> GetCoursePackageDetails(int courseId,string FromAdmin = "0")
         {
             CoursePackageDto course = new CoursePackageDto();
+
+
+            var Coursecontent = new List<CourseContent>();
+
 
             string CourseFullDescription = string.Empty;
             try
@@ -756,6 +768,9 @@ namespace Bagchi_Admin_Backend.Services
 
 
                     DbHelper.AddParameter(cmd, "@CoursePackageId", courseId);
+                    DbHelper.AddParameter(cmd, "@FromAdmin", FromAdmin);
+
+
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         // 1. Main course info
@@ -803,7 +818,7 @@ namespace Bagchi_Admin_Backend.Services
                                 var batch = new Batch();
 
 
-                                   batch. btachId = reader.GetInt32(reader.GetOrdinal("BatchId"));
+                                   batch. batchId = reader.GetInt32(reader.GetOrdinal("BatchId"));
                                 batch.batchName = reader.GetString(reader.GetOrdinal("BatchName"));
                                 batch.batch_classId = reader.GetInt32(reader.GetOrdinal("Batch_ClassId"));
                                 batch.batch_subjectId = reader.GetInt32(reader.GetOrdinal("Batch_SubjectId"));
@@ -840,14 +855,28 @@ namespace Bagchi_Admin_Backend.Services
                                 course.Installments.Add(installment);
                             }
                         }
-                    }
 
+                        if (await reader.NextResultAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var content = new CourseContent();
 
+                                content.ModuleNo = reader["ModuleNo"].ToString();
+                                content.ModuleName = reader["ModuleName"].ToString();
+                                content.Topics = reader["Topics"].ToString();
+                                content.Lessons = reader["Lessons"].ToString();
+                                content.Hours = reader["Hours"].ToString();
+                                content.Outcomes = reader["Outcomes"].ToString();
+                                content.Includes = reader["Includes"].ToString();
+                                 
 
-                }
+                                 Coursecontent.Add(content);
+                            }
+                        } 
 
-
-
+                    } 
+                } 
             }
             catch (Exception ex)
             {
@@ -858,7 +887,7 @@ namespace Bagchi_Admin_Backend.Services
                    
         
 
-        return new Tuple<CoursePackageDto, CourseDetailsDto>(course, details) ;
+        return new Tuple<CoursePackageDto, CourseDetailsDto,List<CourseContent>>(course, details, Coursecontent) ;
     }
 
 
@@ -913,6 +942,268 @@ namespace Bagchi_Admin_Backend.Services
 
 
 
+        public ValidationResultDto ValidateCourseInfo(CoursePackageDto course)
+        {
+            var errors = new List<string>();
 
+            // Simple fields
+            if (string.IsNullOrWhiteSpace(course.CourseName))
+                errors.Add("Course Name is required.");
+
+            if (string.IsNullOrWhiteSpace(course.CourseLevel))
+                errors.Add("Course Level is required.");
+
+            if (course.ClassId <= 0)
+                errors.Add("Class is required.");
+
+            if (course.BoardId <= 0)
+                errors.Add("Board is required.");
+
+            if (course.SubjectId == null || course.SubjectId.Count == 0)
+                errors.Add("At least one subject is required.");
+
+            if (course.Price <= 0)
+                errors.Add("Price is required and must be greater than 0.");
+
+            if (string.IsNullOrWhiteSpace(course.Duration))
+                errors.Add("Course Duration is required.");
+
+            if (string.IsNullOrWhiteSpace(course.ShortDescription))
+                errors.Add("Short Description is required.");
+
+            if (string.IsNullOrWhiteSpace(course.Overview))
+                errors.Add("Overview is required.");
+
+            // Highlights, Requirements, Objectives
+            if (course.Highlights == null || course.Highlights.Count == 0)
+                errors.Add("At least one valid highlight is required.");
+
+            if (course.Requirements == null || course.Requirements.Count == 0)
+                errors.Add("At least one valid requirement is required.");
+
+            if (course.Objectives == null || course.Objectives.Count == 0)
+                errors.Add("At least one valid objective is required.");
+
+            if (course.Status != 0 && course.Status != 1)
+                errors.Add("Status must be 0 (Inactive) or 1 (Active)."); 
+
+            return new ValidationResultDto
+            {
+                StatusCode = errors.Count == 0 ? 200 : 400,
+                ErrorMessage = errors.Count > 0 ? string.Join("\n", errors) : null
+            };
+        }
+
+
+         
+        public async Task<DbResponse> AddUpdateCourseInfoDetails(CoursePackageDto course, List<CourseContent> coursecontent)
+        {
+            DbResponse data = new DbResponse();
+
+
+            try
+            {
+
+                var Xml_Coursecontent =
+              new XElement("CourseContents",
+                  from cont in coursecontent ?? Enumerable.Empty<CourseContent>()
+                  select new XElement("Content",
+                      new XElement("ModuleNo", cont.ModuleNo),
+                      new XElement("ModuleName", cont.ModuleName),
+                      new XElement("Topics", cont.Topics),
+                      new XElement("Lessons", cont.Lessons),
+                      new XElement("Hours", cont.Hours),
+                      new XElement("Includes", cont.Includes),
+                      new XElement("Outcomes", cont.Outcomes)
+                  )
+              );
+
+
+
+
+
+                // ---------------------------
+                // 1. Construct CourseDescription object for DB storage
+                // ---------------------------
+                var courseDescription = new
+                {
+                    ShortDescription = course.ShortDescription,
+                    Overview = course.Overview,
+                    Duration = course.Duration,
+                    Level = course.CourseLevel,
+                    Highlights = course.Highlights // assuming Highlight has Te    xt property
+                };
+
+                string courseDescriptionJson = System.Text.Json.JsonSerializer.Serialize(courseDescription);
+
+                   
+                string subjectsJson = System.Text.Json.JsonSerializer.Serialize(course.SubjectId ?? new List<int>());
+                    
+
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_AddUpdateCourseInfoDetails"; // Your SP name
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    if (cmd.Connection.State != ConnectionState.Open)
+                        await cmd.Connection.OpenAsync(); 
+
+                    //DbHelper.AddParameter(cmd, "@Flag", "I");
+
+                    DbHelper.AddParameter(cmd, "@CoursePackageId", course.CourseId);
+                    DbHelper.AddParameter(cmd, "@CourseName", course.CourseName);
+                    DbHelper.AddParameter(cmd, "@CourseLevel", course.CourseLevel);
+                    DbHelper.AddParameter(cmd, "@CourseImageName", course.CourseImageName);
+                    DbHelper.AddParameter(cmd, "@ClassId", course.ClassId);
+                    DbHelper.AddParameter(cmd, "@BoardId", course.BoardId);
+                    DbHelper.AddParameter(cmd, "@Price", course.Price);
+                    DbHelper.AddParameter(cmd, "@OldPrice", course.OldPrice);
+                     DbHelper.AddParameter(cmd, "@teachername", course.Teacher);
+                    DbHelper.AddParameter(cmd, "@Status", course.Status); 
+
+                    DbHelper.AddParameter(cmd, "@CourseFullDescription", courseDescriptionJson);
+
+
+                    //string requirementsJson = System.Text.Json.JsonSerializer.Serialize(reqList);
+                    DbHelper.AddParameter(cmd, "@Requirements", JsonConvert.SerializeObject(course.Requirements));
+
+
+                    //var objectiveslist = course.Objectives?.Select(o => o.text).ToList() ?? new List<string>();
+                    string objectivesjson = System.Text.Json.JsonSerializer.Serialize(course.Objectives);
+
+                    DbHelper.AddParameter(cmd, "@Objectives", objectivesjson);
+
+ 
+                    DbHelper.AddParameter(cmd, "@Subjects", subjectsJson);
+ 
+                    DbHelper.AddParameter(cmd, "@CourseContentXml", Xml_Coursecontent.ToString());
+
+                    await _dbContext.Database.OpenConnectionAsync();
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            data.StatusCode = Convert.IsDBNull(reader["StatusCode"]) ? "" : reader["StatusCode"].ToString();
+                            data.Message = Convert.IsDBNull(reader["Message"]) ? "" : reader["Message"].ToString();
+
+                        }
+                    }
+
+                    return data;
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+
+            return data;
+
+        }
+
+
+
+        public ValidationResultDto ValidateBatches(List<Batch> batches)
+        {
+            var errors = new List<string>();  
+            // Batches
+            if (batches == null ||  batches.Count == 0)
+                errors.Add("At least one batch is required.");
+            else
+            {
+                for (int i = 0; i < batches.Count; i++)
+                {
+                    var batch = batches[i];
+                    if (string.IsNullOrWhiteSpace(batch.batchName))
+                        errors.Add($"Batch Name is required for batch {i + 1}.");
+                    if (batch.batch_classId <= 0)
+                        errors.Add($"Class is required for batch {i + 1}.");
+                    if (batch.batch_subjectId <= 0)
+                        errors.Add($"Subject is required for batch {i + 1}.");
+                    if (batch.batch_boardId <= 0)
+                        errors.Add($"Board is required for batch {i + 1}.");
+                    if (batch.startDate == default)
+                        errors.Add($"Start Date is required for batch {i + 1}.");
+                    if (batch.endDate == default)
+                        errors.Add($"End Date is required for batch {i + 1}.");
+                    if (batch.startTime == default)
+                        errors.Add($"Start Time is required for batch {i + 1}.");
+                    if (batch.endTime == default)
+                        errors.Add($"End Time is required for batch {i + 1}.");
+                }
+            }
+             return new ValidationResultDto
+            {
+                StatusCode = errors.Count == 0 ? 200 : 400,
+                ErrorMessage = errors.Count > 0 ? string.Join("\n", errors) : null
+            };
+        }
+
+
+        public async Task<DbResponse> AddUpdateCourseBatches(List<Batch> batches, string CourseId)
+        {
+            DbResponse data = new DbResponse();
+
+            try
+            {
+
+                var batchesXml = new XElement("Batches",
+          from batch in batches ?? Enumerable.Empty<Batch>()
+          select new XElement("Batch",
+                new XElement("BatchId", batch. batchId),
+              new XElement("BatchName", batch.batchName ?? string.Empty),      // nvarchar(200)
+              new XElement("Batch_ClassId", batch.batch_classId),               // int
+              new XElement("Batch_SubjectId", batch.batch_subjectId),           // int
+              new XElement("Batch_BoardId", batch.batch_boardId),               // int
+              new XElement("StartDate", batch.startDate.ToString("yyyy-MM-dd")), // date
+              new XElement("EndDate", batch.endDate.ToString("yyyy-MM-dd")),     // date
+              new XElement("StartTime", batch.startTime.ToString(@"hh\:mm")),   // TimeSpan to HH:mm
+              new XElement("EndTime", batch.endTime.ToString(@"hh\:mm"))        // TimeSpan to HH:mm
+          )
+      );
+
+                string batchesXmlString = batchesXml.ToString();
+
+
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_CreateUpdateCourseBatches"; // Your SP name
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    if (cmd.Connection.State != ConnectionState.Open)
+                        await cmd.Connection.OpenAsync();
+
+                    DbHelper.AddParameter(cmd, "@CoursePackageId", CourseId);
+
+                    DbHelper.AddParameter(cmd, "@Batches", batchesXmlString.ToString());
+
+                    await _dbContext.Database.OpenConnectionAsync();
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            data.StatusCode = Convert.IsDBNull(reader["StatusCode"]) ? "" : reader["StatusCode"].ToString();
+                            data.Message = Convert.IsDBNull(reader["Message"]) ? "" : reader["Message"].ToString();
+
+                        }
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+
+
+            return data;
+
+
+        }
+        }
     }
-}

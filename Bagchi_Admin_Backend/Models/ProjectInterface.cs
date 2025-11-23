@@ -44,12 +44,17 @@ namespace Bagchi_Admin_Backend.Models
 
 
         ValidationResultDto ValidateCoursePackage(CoursePackageDto course);
-        Task<DbResponse> AddUpdateCoursePackagewithDetails(CoursePackageDto course);
-      
+        Task<DbResponse> AddUpdateCoursePackagewithDetails(CoursePackageDto course, List<CourseContent> coursecontent);
 
-        Task<Tuple<CoursePackageDto, CourseDetailsDto>> GetCoursePackageDetails(int courseId);
+
+
+        Task<Tuple<CoursePackageDto, CourseDetailsDto, List<CourseContent>>> GetCoursePackageDetails(int courseId,string FromAdmin);
 
         Task<List<AllCourseDetails>> GetAllCourses();
+        ValidationResultDto ValidateCourseInfo(CoursePackageDto course);
+        Task<DbResponse> AddUpdateCourseInfoDetails(CoursePackageDto course, List<CourseContent> coursecontent);
+        ValidationResultDto ValidateBatches(List<Batch> batches);
+        Task<DbResponse> AddUpdateCourseBatches(List<Batch> batches, string CourseId);
     }
 
 
