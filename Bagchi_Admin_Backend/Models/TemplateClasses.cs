@@ -489,19 +489,19 @@ namespace Bagchi_Admin_Backend.Models
         public int courseId { get; set; }
         public string paymentType { get; set; } = "";
 
-        public string fixed_paymentMode { get; set; }
+        public string fixed_paymentMode { get; set; } = "";
 
         public string totalPrice { get; set; } = "0";
-        public List<Installments> installments { get; set; }
+        public List<Installments> installments { get; set; } = new List<Installments>();
 
         public int NoOfInstallments { get; set; }
 
-        public string monthlyAmount { get; set; } = "0";    
+        public decimal monthlyAmount { get; set; } = 0;    
 
-        public string quarterlyAmount { get; set; } = "0";
+        public decimal quarterlyAmount { get; set; } = 0;
 
-        public string halfYearlyAmount { get; set; } = "0";
-        public string yearlyAmount { get; set; } = "0";
+        public decimal halfYearlyAmount { get; set; } = 0;
+        public decimal yearlyAmount { get; set; } = 0;
     }
 
 
@@ -511,6 +511,7 @@ namespace Bagchi_Admin_Backend.Models
         public int installmentNumber { get; set; }
         public decimal  amount { get; set; } = 0;
         public int dueDaysFromStart { get; set; }
+        public int CoursePaymentTypeId { get; set; } = 0;
 
     }
 

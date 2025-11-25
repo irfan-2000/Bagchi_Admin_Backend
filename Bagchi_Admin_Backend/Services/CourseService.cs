@@ -812,8 +812,7 @@ namespace Bagchi_Admin_Backend.Services
                         if (await reader.NextResultAsync())
                         {
                             while (await reader.ReadAsync())
-                            {
-                               
+                            { 
 
                                 var batch = new Batch();
 
@@ -838,23 +837,23 @@ namespace Bagchi_Admin_Backend.Services
                             }
                         }
 
-                        // 4. Installments
-                        course.Installments = new List<Installment>();
-                        if (await reader.NextResultAsync())
-                        {
-                            while (await reader.ReadAsync())
-                            {
-                                var installment = new Installment
-                                {
-                                    TotalInstallments = reader.GetInt32(reader.GetOrdinal("TotalInstallments")).ToString(),
-                                    InstallmentNumber = reader.GetInt32(reader.GetOrdinal("InstallmentNumber")),
-                                    Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
-                                    DueDaysFromStart = reader.GetInt32(reader.GetOrdinal("DueDaysFromStart")),
-                                    Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks"))? null: reader.GetString(reader.GetOrdinal("Remarks"))
-                                };
-                                course.Installments.Add(installment);
-                            }
-                        }
+                        //// 4. Installments
+                        //course.Installments = new List<Installment>();
+                        //if (await reader.NextResultAsync())
+                        //{
+                        //    while (await reader.ReadAsync())
+                        //    {
+                        //        var installment = new Installment
+                        //        {
+                        //            TotalInstallments = reader.GetInt32(reader.GetOrdinal("TotalInstallments")).ToString(),
+                        //            InstallmentNumber = reader.GetInt32(reader.GetOrdinal("InstallmentNumber")),
+                        //            Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
+                        //            DueDaysFromStart = reader.GetInt32(reader.GetOrdinal("DueDaysFromStart")),
+                        //            Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks"))? null: reader.GetString(reader.GetOrdinal("Remarks"))
+                        //        };
+                        //        course.Installments.Add(installment);
+                        //    }
+                        //}
 
                         if (await reader.NextResultAsync())
                         {
@@ -1266,13 +1265,13 @@ namespace Bagchi_Admin_Backend.Services
             // ---------------------------
             if (payment.paymentType == "subscription")
             {
-                if (string.IsNullOrEmpty(payment.monthlyAmount))
+                if (string.IsNullOrEmpty(payment.monthlyAmount.ToString()) || payment.monthlyAmount <= 0)
                 {
-                    if (string.IsNullOrEmpty(payment.quarterlyAmount))
+                    if (string.IsNullOrEmpty(payment.quarterlyAmount.ToString()) || payment.quarterlyAmount <= 0)
                     {
-                        if (string .IsNullOrEmpty(payment.halfYearlyAmount))
+                        if (string .IsNullOrEmpty(payment.halfYearlyAmount.ToString()) || payment.halfYearlyAmount <= 0)
                         {
-                            if (string.IsNullOrEmpty(payment.yearlyAmount))
+                            if (string.IsNullOrEmpty(payment.yearlyAmount.ToString()) || payment.yearlyAmount <= 0)
                             {
                                 errors.Add("At least one subscription amount is required and cant be 0.");
                              }
@@ -1354,6 +1353,78 @@ namespace Bagchi_Admin_Backend.Services
         }
 
 
+
+
+        public async Task<CoursePaymentType> GetCoursePaymentType(int courseId)
+        {
+            CoursePaymentType result = null;
+            try
+            { 
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_GetCoursePaymentType";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    // Parameters
+                    DbHelper.AddParameter(cmd, "@CourseId", courseId);
+ 
+                    await _dbContext.Database.OpenConnectionAsync(); 
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        // --- 1️⃣ Read Base PaymentType Table First ---
+                        if (await reader.ReadAsync())
+                        {
+                            result = new CoursePaymentType();
+
+                            result.coursePaymentId = reader["CoursePaymentTypeId"] != DBNull.Value ? Convert.ToInt32(reader["CoursePaymentTypeId"]) : 0;
+                            result.courseId = reader["CourseId"] != DBNull.Value ? Convert.ToInt32(reader["CourseId"]) : 0;
+                            result.paymentType = reader["PaymentType"].ToString();
+                            result.monthlyAmount = reader["MonthlyAmount"] != DBNull.Value ? Convert.ToDecimal(reader["MonthlyAmount"]) : 0;
+                            result.quarterlyAmount = reader["QuarterlyAmount"] != DBNull.Value ? Convert.ToDecimal(reader["QuarterlyAmount"]) : 0;
+                            result.halfYearlyAmount = reader["HalfYearlyAmount"] != DBNull.Value ? Convert.ToDecimal(reader["HalfYearlyAmount"]) : 0;
+                            result.yearlyAmount = reader["YearlyAmount"] != DBNull.Value ? Convert.ToDecimal(reader["YearlyAmount"]) : 0;
+                             result.NoOfInstallments = reader["NoOfInstallments"] != DBNull.Value ? Convert.ToInt32(reader["NoOfInstallments"]) : 0;
+                            result.fixed_paymentMode = reader["fixed_paymentMode"]?.ToString();
+                            result.totalPrice = reader["TotalPrice"] != DBNull.Value ? Convert.ToDecimal(reader["TotalPrice"]).ToString() : null;
+                             
+                        }
+
+                        // Stop if no record found
+                        if (result == null)
+                            return null;
+
+                        // --- 2️⃣ Move to next result (subscription OR installments) ---
+                        if (await reader.NextResultAsync())
+                        {
+                            // For Subscription → returns only amounts (already mapped)
+
+                            // For Installments → returns list
+                            while (await reader.ReadAsync())
+                            {
+
+
+                                result.installments.Add(new Installments
+                                {
+                                    installmentid = Convert.ToInt32(reader["InstallmentId"]),
+                                    CoursePaymentTypeId = Convert.ToInt32(reader["CoursePaymentTypeId"]),
+                                    installmentNumber = Convert.ToInt32(reader["InstallmentNo"]),
+                                    amount = Convert.ToDecimal(reader["Amount"]),
+                                    dueDaysFromStart = Convert.ToInt32(reader["DaysAfterEnrollment"])
+                                });
+                            }
+                        }
+                    }
+
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return result;
+        }
 
 
     }

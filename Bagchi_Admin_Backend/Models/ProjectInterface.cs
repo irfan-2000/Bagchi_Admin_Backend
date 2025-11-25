@@ -58,6 +58,7 @@ namespace Bagchi_Admin_Backend.Models
           ValidationResultDto ValidateCoursePayment(CoursePaymentType payment);
 
         Task<DbResponse> AddUpdateCoursePaymentType(CoursePaymentType model);
+        Task<CoursePaymentType> GetCoursePaymentType(int courseId);
     }
 
 
