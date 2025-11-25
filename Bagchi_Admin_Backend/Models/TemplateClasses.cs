@@ -480,10 +480,40 @@ namespace Bagchi_Admin_Backend.Models
 
         public string Outcomes { get; set; }
 
-        public bool open { get; set; } = false;
-
-        
+        public bool open { get; set; } = false;        
     }
+
+    public class CoursePaymentType
+    {
+        public int coursePaymentId { get; set; }
+        public int courseId { get; set; }
+        public string paymentType { get; set; } = "";
+
+        public string fixed_paymentMode { get; set; }
+
+        public string totalPrice { get; set; } = "0";
+        public List<Installments> installments { get; set; }
+
+        public int NoOfInstallments { get; set; }
+
+        public string monthlyAmount { get; set; } = "0";    
+
+        public string quarterlyAmount { get; set; } = "0";
+
+        public string halfYearlyAmount { get; set; } = "0";
+        public string yearlyAmount { get; set; } = "0";
+    }
+
+
+    public class Installments
+    {
+        public int installmentid { get; set; } = 0;
+        public int installmentNumber { get; set; }
+        public decimal  amount { get; set; } = 0;
+        public int dueDaysFromStart { get; set; }
+
+    }
+
 
 
 }

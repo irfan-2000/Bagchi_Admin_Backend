@@ -55,6 +55,9 @@ namespace Bagchi_Admin_Backend.Models
         Task<DbResponse> AddUpdateCourseInfoDetails(CoursePackageDto course, List<CourseContent> coursecontent);
         ValidationResultDto ValidateBatches(List<Batch> batches);
         Task<DbResponse> AddUpdateCourseBatches(List<Batch> batches, string CourseId);
+          ValidationResultDto ValidateCoursePayment(CoursePaymentType payment);
+
+        Task<DbResponse> AddUpdateCoursePaymentType(CoursePaymentType model);
     }
 
 

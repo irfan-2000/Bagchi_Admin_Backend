@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
 using DocumentFormat.OpenXml.Packaging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.FileSystemGlobbing;
 using System.Text.Json;
 
 namespace Bagchi_Admin_Backend.Controllers
@@ -761,7 +762,7 @@ namespace Bagchi_Admin_Backend.Controllers
 
                 //var result = await _courseservice.AddUpdateCoursePackagewithDetails(courseDto, coursecontent);
 
-                var result = await _courseservice.AddUpdateCourseBatches(batches, CourseId);
+                 var result = await _courseservice.AddUpdateCourseBatches(batches, CourseId);
                 
                 if (result.StatusCode == "1")
                 {
@@ -784,6 +785,38 @@ namespace Bagchi_Admin_Backend.Controllers
             }
         }
 
+        [HttpPost("SubmitPaymentTypeOfCourse")]
+        public async Task<IActionResult>SubmitPaymentTypeOfCourse(CoursePaymentType paymentType)
+        {
+            try
+            {
+                var validationResult = _courseservice.ValidateCoursePayment(paymentType);
+                if (validationResult.StatusCode != 200)
+                    return BadRequest(validationResult);
+
+
+                var result = await _courseservice.AddUpdateCoursePaymentType(paymentType);
+                 
+                 if (result.StatusCode == "1")
+                {
+                    return Ok(new { statuscode = "200", message = "Details has been saved" });
+                }
+                else
+                {
+                    return BadRequest();
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    StatusCode = 500,
+                    Message = ex.Message
+                });
+            }
+        }
 
 
     }

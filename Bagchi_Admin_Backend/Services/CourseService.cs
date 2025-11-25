@@ -1198,12 +1198,163 @@ namespace Bagchi_Admin_Backend.Services
             {
 
             }
+            return data;
+        }
 
 
+        public   ValidationResultDto ValidateCoursePayment(CoursePaymentType payment)
+        {
+            var errors = new List<string>();
+
+            // Payment Type Required
+            if (string.IsNullOrWhiteSpace(payment.paymentType))             
+                errors.Add("Payment Type is required."); 
+            if (string.IsNullOrWhiteSpace(payment.courseId.ToString())  || payment.courseId <=0)             
+                errors.Add("courseId is required."); 
+
+            // -------------------------
+            // FIXED PAYMENT VALIDATION
+            // -------------------------
+            if (payment.paymentType == "fixed")
+            {
+                if (string.IsNullOrWhiteSpace(payment.totalPrice) || payment.totalPrice == "0")
+                {
+                    errors.Add("Total Price is required and cant be 0.");
+                     
+                }
+            }
+
+            // -----------------------------------------
+            // INSTALLMENTS VALIDATION (fixed_paymentMode)
+            // -----------------------------------------
+            if (payment.fixed_paymentMode == "installments" || payment.fixed_paymentMode == "both")
+            {
+                if (payment.installments == null || payment.installments.Count == 0)
+                {
+                    errors.Add("At least 1 installment is required.");
+                 }
+
+                for (int i = 0; i < payment.installments.Count; i++)
+                {
+                    var inst = payment.installments[i];
+
+                    // Validate amount
+                    if (string.IsNullOrWhiteSpace(inst.amount.ToString()) ||
+                        inst.amount == 0)
+                    {
+                        errors.Add($"Installment {i + 1}: Amount is required and must be greater than 0.");
+                    }
+
+                    // Validate dueDaysFromStart
+                    if (string.IsNullOrWhiteSpace(inst.dueDaysFromStart.ToString()))
+                    {
+                        errors.Add($"Installment {i + 1}: Due Days From Start is required.");
+                    }
+                }
+
+
+                if(payment.NoOfInstallments.ToString() != payment.installments.Count.ToString() )
+                {
+                    errors.Add($"No of Installments mismatches.");
+
+                }
+
+            }
+
+            // ---------------------------
+            // SUBSCRIPTION VALIDATION
+            // ---------------------------
+            if (payment.paymentType == "subscription")
+            {
+                if (string.IsNullOrEmpty(payment.monthlyAmount))
+                {
+                    if (string.IsNullOrEmpty(payment.quarterlyAmount))
+                    {
+                        if (string .IsNullOrEmpty(payment.halfYearlyAmount))
+                        {
+                            if (string.IsNullOrEmpty(payment.yearlyAmount))
+                            {
+                                errors.Add("At least one subscription amount is required and cant be 0.");
+                             }
+                        }
+                    }
+                }
+            }
+  
+                return new ValidationResultDto
+                {
+                    StatusCode = errors.Count == 0 ? 200 : 400,
+                    ErrorMessage = errors.Count > 0 ? string.Join("\n", errors) : null
+                };
+             
+ 
+        }
+
+
+        public async Task<DbResponse> AddUpdateCoursePaymentType(CoursePaymentType model)
+        {
+            DbResponse data = new DbResponse();
+
+            try
+            {
+                // Build Installments XML (Same structure used in SP)
+                var installmentsXml = new XElement("Installments",
+                    from inst in model.installments ?? Enumerable.Empty<Installments>()
+                    select new XElement("Installment",
+                        new XAttribute("InstallmentId", inst.installmentid), // 0 or missing = new
+                        new XAttribute("InstallmentNo", inst.installmentNumber),
+                        new XAttribute("Amount",Convert.ToDecimal(inst.amount)),
+                        new XAttribute("DaysAfterEnrollment", Convert.ToInt32(inst.dueDaysFromStart))
+                    )
+                );
+
+                string installmentsXmlString = installmentsXml.ToString();
+
+                using (var cmd = _dbContext.Database.GetDbConnection().CreateCommand())
+                {
+                    cmd.CommandText = "usp_InsertOrUpdateCoursePaymentType";
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    if (cmd.Connection.State != ConnectionState.Open)
+                        await cmd.Connection.OpenAsync();
+
+                    // Parameters same as SP
+                    DbHelper.AddParameter(cmd, "@CoursePaymentTypeId", model.coursePaymentId);
+                    DbHelper.AddParameter(cmd, "@CourseId", model.courseId);
+                    DbHelper.AddParameter(cmd, "@PaymentType", model.paymentType);
+                    DbHelper.AddParameter(cmd, "@MonthlyAmount", model.monthlyAmount);
+                    DbHelper.AddParameter(cmd, "@QuarterlyAmount", model.quarterlyAmount);
+                    DbHelper.AddParameter(cmd, "@HalfYearlyAmount", model.halfYearlyAmount);
+                    DbHelper.AddParameter(cmd, "@YearlyAmount", model.yearlyAmount);
+                    DbHelper.AddParameter(cmd, "@NoOfInstallments", model.NoOfInstallments);
+                    DbHelper.AddParameter(cmd, "@fixed_paymentMode", model.fixed_paymentMode);
+                     DbHelper.AddParameter(cmd, "@TotalPrice", model.totalPrice);
+
+                    DbHelper.AddParameter(cmd, "@InstallmentsXml", installmentsXmlString);
+
+                    await _dbContext.Database.OpenConnectionAsync();
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            data.StatusCode = Convert.IsDBNull(reader["Status"]) ? "" : reader["Status"].ToString();
+                            data.Message = Convert.IsDBNull(reader["Message"]) ? "" : reader["Message"].ToString();
+                         }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                data.StatusCode = "0";
+                data.Message = ex.Message;
+            }
 
             return data;
+        }
 
 
-        }
-        }
+
+
     }
+}
