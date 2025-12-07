@@ -1084,6 +1084,7 @@ namespace Bagchi_Admin_Backend.Services
                         {
                             data.StatusCode = Convert.IsDBNull(reader["StatusCode"]) ? "" : reader["StatusCode"].ToString();
                             data.Message = Convert.IsDBNull(reader["Message"]) ? "" : reader["Message"].ToString();
+                            data.Result = Convert.IsDBNull(reader["CoursePackageId"]) ? "" : reader["CoursePackageId"].ToString();
 
                         }
                     }

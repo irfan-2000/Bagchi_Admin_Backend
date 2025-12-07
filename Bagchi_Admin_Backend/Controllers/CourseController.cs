@@ -716,7 +716,7 @@ namespace Bagchi_Admin_Backend.Controllers
                 var result = await _courseservice.AddUpdateCourseInfoDetails(courseDto, coursecontent);
                 if (result.StatusCode == "1")
                 {
-                    return Ok(new { statuscode = "200", message = "Details has been saved" });
+                    return Ok(new { statuscode = "200", message = "Details has been saved", Result = result.Result });
                 }
                 else
                 {

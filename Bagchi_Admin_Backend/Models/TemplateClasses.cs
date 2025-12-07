@@ -271,6 +271,8 @@ namespace Bagchi_Admin_Backend.Models
     {
         public string StatusCode { get; set; }
         public string Message { get; set; }
+
+        public dynamic Result { get; set; }
     }
  
     public class AllCourseDetails
@@ -446,13 +448,17 @@ namespace Bagchi_Admin_Backend.Models
         public string OptionB { get; set; }
         public string OptionC { get; set; }
         public string OptionD { get; set; }
-        public string CorrectAnswer { get; set; }
+        //public string CorrectAnswer { get; set; }
 
         public string IsNumerical { get; set; }
         public string NumericalAnswer { get; set; } // NA or number
 
         public double PositiveMarks { get; set; }
         public double NegativeMarks { get; set; }
+
+        public List<string> CorrectAnswers { get; set; } = new List<string>();
+
+
     }
 
 
@@ -480,7 +486,9 @@ namespace Bagchi_Admin_Backend.Models
 
         public string Outcomes { get; set; }
 
-        public bool open { get; set; } = false;        
+        public bool open { get; set; } = false;
+        public List<string> CorrectAnswer { get; set; } = new List<string>();
+
     }
 
     public class CoursePaymentType

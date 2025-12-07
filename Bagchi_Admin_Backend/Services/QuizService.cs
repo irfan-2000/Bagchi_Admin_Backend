@@ -196,10 +196,14 @@ namespace Bagchi_Admin_Backend.Services
                 else
                 {
                     // MCQ: normalize correct answers (A,B,C,D)
-                    var correctAnswers = (q.CorrectAnswer ?? "")
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(a => a.Trim().ToUpper())
-                        .ToList();
+                  //  var correctAnswers = (q.CorrectAnswers ?? "")
+                    //    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                      //  .Select(a => a.Trim().ToUpper())
+                        //.ToList();
+
+                    var correctAnswers = q.CorrectAnswers
+                      .Select(a => a.Trim().ToUpper())
+                      .ToList();
 
                     XElement optionElem1 = new XElement("Option", q.OptionA ?? string.Empty);
                     XElement optionElem2 = new XElement("Option", q.OptionB ?? string.Empty);
@@ -440,7 +444,7 @@ namespace Bagchi_Admin_Backend.Services
                 }
 
                 // 5. If MCQ → correct answer must exist
-                if (hasOption && string.IsNullOrWhiteSpace(q.CorrectAnswer))
+                if (hasOption && string.IsNullOrWhiteSpace(q.CorrectAnswers.ToString()))
                 {
                     return new DbResponse
                     {

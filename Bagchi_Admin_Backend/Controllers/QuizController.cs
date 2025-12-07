@@ -203,8 +203,17 @@ namespace Bagchi_Admin_Backend.Controllers
                         q.OptionD = GetCellText(cells[6]);
                         q.IsNumerical = GetCellText(cells[7]);
                         q.NumericalAnswer = GetCellText(cells[8]);
-                        q.CorrectAnswer = GetCellText(cells[9]);                
-                       
+                        //q.CorrectAnswer =  GetCellText(cells[9]);
+ 
+                        string correctCellText = GetCellText(cells[9]); // e.g., "A,C"
+
+                        q.CorrectAnswers = new List<string>();
+                        foreach (var ans in correctCellText.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            q.CorrectAnswers.Add(ans.Trim());
+                        }
+
+
                         q.PositiveMarks = double.TryParse(GetCellText(cells[10]), out var p) ? p : 0;
                         q.NegativeMarks = double.TryParse(GetCellText(cells[11]), out var n) ? n : 0;
                         
